@@ -1,126 +1,125 @@
-// server.js (Render API Gateway)
-
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
-const bodyParser = require("body-parser");
 
 const app = express();
-
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-// ===============================
-// ?? InfinityFree Backend
-// ===============================
 const BASE = "https://pandoratest.free.nf/api";
 
-// ===============================
-// ?? Axios instance
-// ===============================
 const api = axios.create({
     headers: {
         "User-Agent": "Mozilla/5.0",
-        "Content-Type": "application/json",
-        "Accept": "application/json"
+        "Accept": "application/json,text/html,*/*"
     },
     timeout: 15000
 });
 
 // ===============================
-// ?? ENROLL BIOMETRIC
+// SAFE REQUEST HELPER
+// ===============================
+async function safeGet(url) {
+    try {
+        const res = await api.get(url);
+
+        // Detect InfinityFree block page
+        if (
+            typeof res.data === "string" &&
+            (res.data.includes("aes.js") ||
+             res.data.includes("__test") ||
+             res.data.includes("slowAES"))
+        ) {
+            return {
+                error: true,
+                message: "InfinityFree blocked request",
+                raw: "BLOCKED_HTML"
+            };
+        }
+
+        return res.data;
+
+    } catch (err) {
+        return {
+            error: true,
+            message: err.message
+        };
+    }
+}
+
+// ===============================
+// SAFE POST HELPER
+// ===============================
+async function safePost(url, body) {
+    try {
+        const res = await api.post(url, body);
+
+        if (
+            typeof res.data === "string" &&
+            (res.data.includes("aes.js") ||
+             res.data.includes("__test"))
+        ) {
+            return {
+                error: true,
+                message: "InfinityFree blocked request"
+            };
+        }
+
+        return res.data;
+
+    } catch (err) {
+        return {
+            error: true,
+            message: err.message
+        };
+    }
+}
+
+// ===============================
+// ENROLL
 // ===============================
 app.post("/enroll", async (req, res) => {
-    try {
-        const response = await api.post(`${BASE}/save_fingerprint.php`, {
-            register: "1",
-            username: req.body.username,
-            biometric_id: req.body.biometric_id
-        });
+    const result = await safePost(`${BASE}/save_fingerprint.php`, {
+        register: "1",
+        username: req.body.username,
+        biometric_id: req.body.biometric_id
+    });
 
-        res.json(response.data);
-    } catch (err) {
-        res.status(500).json({
-            error: "Enroll failed",
-            message: err.message
-        });
-    }
+    res.json(result);
 });
 
 // ===============================
-// ?? UPDATE BIOMETRIC
+// UPDATE
 // ===============================
 app.post("/update", async (req, res) => {
-    try {
-        const response = await api.post(`${BASE}/update_biometric.php`, {
-            username: req.body.username,
-            biometric_id: req.body.biometric_id
-        });
+    const result = await safePost(`${BASE}/update_biometric.php`, {
+        username: req.body.username,
+        biometric_id: req.body.biometric_id
+    });
 
-        res.json(response.data);
-    } catch (err) {
-        res.status(500).json({
-            error: "Update failed",
-            message: err.message
-        });
-    }
+    res.json(result);
 });
 
 // ===============================
-// ?? GET ALL FINGERPRINTS
+// GET FINGERPRINT
 // ===============================
 app.get("/getfingerprint", async (req, res) => {
-    try {
-        const response = await api.get(`${BASE}/get_fingerprints.php`);
-
-        res.json(response.data);
-    } catch (err) {
-        res.status(500).json({
-            error: "Fetch failed",
-            message: err.message
-        });
-    }
+    const result = await safeGet(`${BASE}/get_fingerprints.php`);
+    res.json(result);
 });
 
 // ===============================
-// ?? LOGIN (by ID or biometric)
+// LOGIN
 // ===============================
 app.post("/login", async (req, res) => {
-    try {
-        const response = await api.post(`${BASE}/login.php`, {
-            id: req.body.id,
-            login: "1"
-        });
+    const result = await safePost(`${BASE}/login.php`, {
+        id: req.body.id,
+        login: "1"
+    });
 
-        res.json(response.data);
-    } catch (err) {
-        res.status(500).json({
-            error: "Login failed",
-            message: err.message
-        });
-    }
+    res.json(result);
 });
 
-// ===============================
-// ?? GET BIOMETRIC BY ID
-// ===============================
-app.get("/getbiometric", async (req, res) => {
-    try {
-        const id = req.query.id;
-
-        const response = await api.get(`${BASE}/get_fingerprints.php?id=${id}`);
-
-        res.json(response.data);
-    } catch (err) {
-        res.status(500).json({
-            error: "Get biometric failed",
-            message: err.message
-        });
-    }
-});
-
-// ===============================
-// ?? ROOT
 // ===============================
 app.get("/", (req, res) => {
     res.json({
@@ -129,10 +128,5 @@ app.get("/", (req, res) => {
     });
 });
 
-// ===============================
-// ?? START SERVER
-// ===============================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log("Server running on port " + PORT);
-});
+app.listen(PORT, () => console.log("Server running"));
