@@ -1,0 +1,21 @@
+{
+  "name": "biometric-api",
+  "version": "1.0.0",
+  "description": "Biometric API Gateway (Render ? InfinityFree)",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "axios-cookiejar-support": "^4.0.4",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "tough-cookie": "^4.1.3"
+  }
+}
