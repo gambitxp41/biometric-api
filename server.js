@@ -21,11 +21,15 @@ app.get("/", (req, res) => {
 });
 
 // ========================
-// GET USER (InfinityFree dashboard)
+// GET USER
 // ========================
 app.get("/get-user", async (req, res) => {
     try {
         const { id } = req.query;
+
+        if (!id) {
+            return res.json({ success: false, message: "Missing id" });
+        }
 
         const [rows] = await db.query(
             "SELECT id, username, role, profile_photo FROM users WHERE id=?",
@@ -34,12 +38,12 @@ app.get("/get-user", async (req, res) => {
 
         res.json(rows[0] || null);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 
 // ========================
-// GET BIOMETRIC DATA (NEW)
+// GET BIOMETRIC DATA
 // ========================
 app.get("/get-biometric", async (req, res) => {
     try {
@@ -74,7 +78,7 @@ app.get("/get-biometric", async (req, res) => {
 app.get("/stats/users", async (req, res) => {
     try {
         const [rows] = await db.query("SELECT COUNT(*) AS total FROM users");
-        res.json(rows[0].total);
+        res.json({ total: rows[0].total });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -83,113 +87,25 @@ app.get("/stats/users", async (req, res) => {
 app.get("/stats/inventory", async (req, res) => {
     try {
         const [rows] = await db.query("SELECT COUNT(*) AS total FROM inventory");
-        res.json(rows[0].total);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get("/stats/borrowed", async (req, res) => {
-    try {
-        const [rows] = await db.query(
-            "SELECT COUNT(*) AS total FROM transactions WHERE status='borrowed'"
-        );
-        res.json(rows[0].total);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get("/stats/returned", async (req, res) => {
-    try {
-        const [rows] = await db.query(
-            "SELECT COUNT(*) AS total FROM transactions WHERE status='returned'"
-        );
-        res.json(rows[0].total);
+        res.json({ total: rows[0].total });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
 // ========================
-// RECENT TRANSACTIONS
-// ========================
-app.get("/transactions/recent", async (req, res) => {
-    try {
-        const [rows] = await db.query(`
-            SELECT t.*, i.name AS item_name, u.username
-            FROM transactions t
-            JOIN inventory i ON t.item_id = i.id
-            JOIN users u ON t.user_id = u.id
-            ORDER BY t.borrow_time DESC
-            LIMIT 10
-        `);
-
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ========================
-// RECENT RESERVATIONS
-// ========================
-app.get("/reservations/recent", async (req, res) => {
-    try {
-        const [rows] = await db.query(`
-            SELECT r.*, i.name AS item_name, u.username
-            FROM reservations r
-            JOIN inventory i ON r.item_id = i.id
-            JOIN users u ON r.user_id = u.id
-            ORDER BY r.start_time DESC
-            LIMIT 10
-        `);
-
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ========================
-// ENROLL BIOMETRIC (C# REGISTER)
-// ========================
-app.post("/enroll-fingerprint", async (req, res) => {
-    try {
-        const { username, biometric_id } = req.body;
-
-        if (!username || !biometric_id) {
-            return res.json({ success: false, message: "Missing data" });
-        }
-
-        await db.query(
-            "UPDATE users SET biometric_id=? WHERE username=?",
-            [biometric_id, username]
-        );
-
-        res.json({
-            success: true,
-            message: "Fingerprint enrolled successfully"
-        });
-
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ========================
-// LOGIN BIOMETRIC (C# SCANNER)
+// LOGIN BIOMETRIC (MAIN FIXED)
 // ========================
 app.post("/login-biometric", async (req, res) => {
     try {
         const { finger_id } = req.body;
 
         if (!finger_id) {
-            return res.json({ success: false, message: "No fingerprint ID" });
+            return res.json({ success: false, message: "Missing finger_id" });
         }
 
         const [rows] = await db.query(
-            "SELECT id, username, role FROM users WHERE biometric_id=? OR id=?",
+            "SELECT id, username, role, biometric_id FROM users WHERE biometric_id=? OR id=?",
             [finger_id, finger_id]
         );
 
@@ -207,23 +123,30 @@ app.post("/login-biometric", async (req, res) => {
         });
 
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 
 // ========================
-// UPDATE USER
+// ENROLL BIOMETRIC
 // ========================
-app.post("/update-user", async (req, res) => {
+app.post("/enroll-fingerprint", async (req, res) => {
     try {
-        const { id, username } = req.body;
+        const { username, biometric_id } = req.body;
+
+        if (!username || !biometric_id) {
+            return res.json({ success: false, message: "Missing data" });
+        }
 
         await db.query(
-            "UPDATE users SET username=? WHERE id=?",
-            [username, id]
+            "UPDATE users SET biometric_id=? WHERE username=?",
+            [biometric_id, username]
         );
 
-        res.json({ success: true, message: "User updated" });
+        res.json({
+            success: true,
+            message: "Fingerprint saved"
+        });
 
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -231,7 +154,7 @@ app.post("/update-user", async (req, res) => {
 });
 
 // ========================
-// ERROR HANDLER
+// GLOBAL ERROR SAFETY
 // ========================
 process.on("unhandledRejection", (err) => {
     console.log("Unhandled Error:", err);
@@ -243,5 +166,5 @@ process.on("unhandledRejection", (err) => {
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
+    console.log("🚀 Server running on port " + PORT);
 });
