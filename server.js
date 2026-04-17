@@ -39,30 +39,76 @@ app.get("/get-user", async (req, res) => {
 });
 
 // ========================
+// GET BIOMETRIC DATA (NEW)
+// ========================
+app.get("/get-biometric", async (req, res) => {
+    try {
+        const { id } = req.query;
+
+        if (!id) {
+            return res.json({ success: false, message: "Missing id" });
+        }
+
+        const [rows] = await db.query(
+            "SELECT id, username, biometric_id FROM users WHERE id=?",
+            [id]
+        );
+
+        if (rows.length === 0) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        res.json({
+            success: true,
+            user: rows[0]
+        });
+
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ========================
 // STATS
 // ========================
 app.get("/stats/users", async (req, res) => {
-    const [rows] = await db.query("SELECT COUNT(*) AS total FROM users");
-    res.json(rows[0].total);
+    try {
+        const [rows] = await db.query("SELECT COUNT(*) AS total FROM users");
+        res.json(rows[0].total);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.get("/stats/inventory", async (req, res) => {
-    const [rows] = await db.query("SELECT COUNT(*) AS total FROM inventory");
-    res.json(rows[0].total);
+    try {
+        const [rows] = await db.query("SELECT COUNT(*) AS total FROM inventory");
+        res.json(rows[0].total);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.get("/stats/borrowed", async (req, res) => {
-    const [rows] = await db.query(
-        "SELECT COUNT(*) AS total FROM transactions WHERE status='borrowed'"
-    );
-    res.json(rows[0].total);
+    try {
+        const [rows] = await db.query(
+            "SELECT COUNT(*) AS total FROM transactions WHERE status='borrowed'"
+        );
+        res.json(rows[0].total);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.get("/stats/returned", async (req, res) => {
-    const [rows] = await db.query(
-        "SELECT COUNT(*) AS total FROM transactions WHERE status='returned'"
-    );
-    res.json(rows[0].total);
+    try {
+        const [rows] = await db.query(
+            "SELECT COUNT(*) AS total FROM transactions WHERE status='returned'"
+        );
+        res.json(rows[0].total);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // ========================
@@ -143,28 +189,22 @@ app.post("/login-biometric", async (req, res) => {
         }
 
         const [rows] = await db.query(
-            "SELECT * FROM users WHERE id=?",
-            [finger_id]
+            "SELECT id, username, role FROM users WHERE biometric_id=? OR id=?",
+            [finger_id, finger_id]
         );
 
-        if (rows.length > 0) {
-            const user = rows[0];
-
-            return res.json({
-                success: true,
-                message: "Login successful",
-                user: {
-                    id: user.id,
-                    username: user.username,
-                    role: user.role
-                }
-            });
-        } else {
+        if (rows.length === 0) {
             return res.json({
                 success: false,
-                message: "User not found"
+                message: "Fingerprint not found"
             });
         }
+
+        res.json({
+            success: true,
+            message: "Login successful",
+            user: rows[0]
+        });
 
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -172,7 +212,7 @@ app.post("/login-biometric", async (req, res) => {
 });
 
 // ========================
-// UPDATE USER (OPTIONAL)
+// UPDATE USER
 // ========================
 app.post("/update-user", async (req, res) => {
     try {
@@ -188,6 +228,13 @@ app.post("/update-user", async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// ========================
+// ERROR HANDLER
+// ========================
+process.on("unhandledRejection", (err) => {
+    console.log("Unhandled Error:", err);
 });
 
 // ========================
