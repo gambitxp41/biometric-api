@@ -98,15 +98,15 @@ app.get("/stats/inventory", async (req, res) => {
 // ========================
 app.post("/login-biometric", async (req, res) => {
     try {
-        const { biometric_id } = req.body;
+        const { finger_id } = req.body;
 
-        if (!biometric_id) {
+        if (!finger_id) {
             return res.json({ success: false, message: "Missing finger_id" });
         }
 
         const [rows] = await db.query(
             "SELECT id, username, role, biometric_id FROM users WHERE biometric_id=? OR id=?",
-            [biometric_id, biometric_id]
+            [finger_id, finger_id]
         );
 
         if (rows.length === 0) {
