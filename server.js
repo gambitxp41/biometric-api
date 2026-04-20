@@ -131,43 +131,28 @@ app.get("/stats/inventory", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-// ========================
-// LOGIN USERNAME + PASSWORD
-// ========================
 app.post("/login", async (req, res) => {
     try {
         const { username, password } = req.body;
 
         if (!username || !password) {
-            return res.json({
-                success: false,
-                message: "Missing username or password"
-            });
+            return res.json({ success: false, message: "Missing username or password" });
         }
 
         const [rows] = await db.query(
-            "SELECT id, username, password, role FROM users WHERE username=?",
+            "SELECT * FROM users WHERE username = ?",
             [username]
         );
 
         if (rows.length === 0) {
-            return res.json({
-                success: false,
-                message: "User not found"
-            });
+            return res.json({ success: false, message: "Username not found" });
         }
 
         const user = rows[0];
 
-        // ⚠️ If you are using hashed password (recommended)
-        const bcrypt = require("bcrypt");
-        const match = await bcrypt.compare(password, user.password);
-
-        if (!match) {
-            return res.json({
-                success: false,
-                message: "Invalid password"
-            });
+        // If password is plain text (NOT recommended)
+        if (user.password !== password) {
+            return res.json({ success: false, message: "Invalid password" });
         }
 
         res.json({
@@ -176,15 +161,13 @@ app.post("/login", async (req, res) => {
             user: {
                 id: user.id,
                 username: user.username,
-                role: user.role
+                role: user.role,
+                biometric_id: user.biometric_id
             }
         });
 
     } catch (err) {
-        res.status(500).json({
-            success: false,
-            error: err.message
-        });
+        res.json({ success: false, error: err.message });
     }
 });
 
