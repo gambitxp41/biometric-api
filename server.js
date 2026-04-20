@@ -43,6 +43,45 @@ app.get("/get-user", async (req, res) => {
 });
 
 // ========================
+// UPDATE BIOMETRIC USING USERNAME
+// ========================
+app.post("/update-biometric", async (req, res) => {
+    try {
+        const { username, biometric_id } = req.body;
+
+        if (!username || !biometric_id) {
+            return res.json({
+                success: false,
+                message: "Missing username or biometric_id"
+            });
+        }
+
+        const [result] = await db.query(
+            "UPDATE users SET biometric_id=? WHERE username=?",
+            [biometric_id, username]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Biometric updated successfully"
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+});
+
+// ========================
 // GET BIOMETRIC DATA
 // ========================
 app.get("/get-biometric", async (req, res) => {
