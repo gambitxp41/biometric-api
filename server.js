@@ -206,6 +206,51 @@ app.post("/login-biometric", async (req, res) => {
 });
 
 // ========================
+// SIGNUP (MAIN FIXED)
+// ========================
+app.post("/signup", async (req, res) => {
+    try {
+        const { username, password, role } = req.body;
+
+        if (!username || !password) {
+            return res.json({
+                success: false,
+                message: "Missing username or password"
+            });
+        }
+
+        const [existing] = await db.query(
+            "SELECT * FROM users WHERE username=?",
+            [username]
+        );
+
+        if (existing.length > 0) {
+            return res.json({
+                success: false,
+                message: "Username already exists"
+            });
+        }
+
+        // ❌ NO HASH (plain text)
+        await db.query(
+            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+            [username, password, role || "student"]
+        );
+
+        res.json({
+            success: true,
+            message: "Account created"
+        });
+
+    } catch (err) {
+        res.json({
+            success: false,
+            error: err.message
+        });
+    }
+});
+
+// ========================
 // ENROLL BIOMETRIC
 // ========================
 app.post("/enroll-fingerprint", async (req, res) => {
