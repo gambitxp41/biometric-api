@@ -131,6 +131,62 @@ app.get("/stats/inventory", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+// ========================
+// LOGIN USERNAME + PASSWORD
+// ========================
+app.post("/login", async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res.json({
+                success: false,
+                message: "Missing username or password"
+            });
+        }
+
+        const [rows] = await db.query(
+            "SELECT id, username, password, role FROM users WHERE username=?",
+            [username]
+        );
+
+        if (rows.length === 0) {
+            return res.json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        const user = rows[0];
+
+        // ⚠️ If you are using hashed password (recommended)
+        const bcrypt = require("bcrypt");
+        const match = await bcrypt.compare(password, user.password);
+
+        if (!match) {
+            return res.json({
+                success: false,
+                message: "Invalid password"
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Login successful",
+            user: {
+                id: user.id,
+                username: user.username,
+                role: user.role
+            }
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+});
 
 // ========================
 // LOGIN BIOMETRIC (MAIN FIXED)
