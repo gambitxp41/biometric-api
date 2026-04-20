@@ -21,6 +21,10 @@ app.get("/", (req, res) => {
 });
 
 // ========================
+// profile photo
+// ========================
+app.use("/uploads", express.static("uploads"));
+// ========================
 // GET USER
 // ========================
 app.get("/get-user", async (req, res) => {
