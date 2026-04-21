@@ -33,9 +33,9 @@ app.use(cors());
 app.use(express.json());
 
 // Serve uploads folder publicly
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// MULTER upload config
+// MULTER storage config
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, "uploads/");
@@ -45,18 +45,33 @@ const storage = multer.diskStorage({
         cb(null, Date.now() + ext);
     }
 });
+
 const upload = multer({ storage });
 
 // Upload endpoint
 app.post("/upload-photo", upload.single("profile_photo"), (req, res) => {
     if (!req.file) {
-        return res.json({ success: false, message: "No file uploaded" });
+        return res.json({
+            success: false,
+            message: "No file uploaded"
+        });
     }
-    const fileUrl = `https://biometric-api-sdk6.onrender.com/uploads/${req.file.filename}`;
-    res.json({ success: true, url: fileUrl });
+
+    const fileUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+
+    res.json({
+        success: true,
+        url: fileUrl
+    });
 });
 
-app.listen(3000, () => console.log("Server running"));
+// Default
+app.get("/", (req, res) => {
+    res.send("Upload API Running");
+});
+
+// Start server
+app.listen(3000, () => console.log("Server running on port 3000"));
 // ========================
 // GET USER
 // ========================
