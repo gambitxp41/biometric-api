@@ -21,24 +21,25 @@ app.get("/", (req, res) => {
 });
 
 // ========================
-// profile photo
+// UPLOADS FOLDER (PUBLIC)
 // ========================
-const express = require("express");
-const cors = require("cors");
-const multer = require("multer");
-const path = require("path");
+const fs = require("fs");
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+const uploadPath = path.join(__dirname, "uploads");
 
-// Serve uploads folder publicly
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// create folder if not exists (IMPORTANT for Render)
+if (!fs.existsSync(uploadPath)) {
+    fs.mkdirSync(uploadPath);
+}
 
-// MULTER storage config
+app.use("/uploads", express.static(uploadPath));
+
+// ========================
+// MULTER CONFIG
+// ========================
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, "uploads/");
+        cb(null, uploadPath);
     },
     filename: function (req, file, cb) {
         const ext = path.extname(file.originalname);
@@ -48,7 +49,9 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Upload endpoint
+// ========================
+// UPLOAD ENDPOINT
+// ========================
 app.post("/upload-photo", upload.single("profile_photo"), (req, res) => {
     if (!req.file) {
         return res.json({
@@ -57,21 +60,15 @@ app.post("/upload-photo", upload.single("profile_photo"), (req, res) => {
         });
     }
 
-    const fileUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    const fileUrl =
+        `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
 
     res.json({
         success: true,
+        filename: req.file.filename,
         url: fileUrl
     });
 });
-
-// Default
-app.get("/", (req, res) => {
-    res.send("Upload API Running");
-});
-
-// Start server
-app.listen(3000, () => console.log("Server running on port 3000"));
 // ========================
 // GET USER
 // ========================
