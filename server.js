@@ -44,7 +44,7 @@ app.post("/upload-photo", upload.single("profile_photo"), (req, res) => {
         filename: req.file.filename,
         url: fileUrl
     });
-});
+
 // ========================
 // GET USER
 // ========================
