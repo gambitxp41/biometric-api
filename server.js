@@ -99,7 +99,15 @@ app.post("/update-biometric", async (req, res) => {
 app.get("/transactions", async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT t.id, i.item_name, u.username, t.procedure, t.status, t.borrow_time
+            SELECT 
+                t.id,
+                i.name AS item_name,
+                u.username,
+                t.procedure,
+                t.quantity,
+                t.status,
+                t.borrow_time,
+                t.return_time
             FROM transactions t
             LEFT JOIN inventory i ON t.item_id = i.id
             LEFT JOIN users u ON t.user_id = u.id
@@ -109,7 +117,8 @@ app.get("/transactions", async (req, res) => {
 
         res.json(rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.log(err);
+        res.json([]);
     }
 });
 // ========================
@@ -118,7 +127,13 @@ app.get("/transactions", async (req, res) => {
 app.get("/reservations", async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT r.id, i.item_name, u.username, r.start_time, r.end_time, r.status
+            SELECT 
+                r.id,
+                i.name AS item_name,
+                u.username,
+                r.start_time,
+                r.end_time,
+                r.status
             FROM reservations r
             LEFT JOIN inventory i ON r.item_id = i.id
             LEFT JOIN users u ON r.user_id = u.id
@@ -128,7 +143,8 @@ app.get("/reservations", async (req, res) => {
 
         res.json(rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.log(err);
+        res.json([]);
     }
 });
 // ========================
