@@ -70,6 +70,16 @@ app.get("/delete-user", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+// GET ALL USERS
+app.get("/users", async (req, res) => {
+    try {
+        const [rows] = await db.query("SELECT * FROM users");
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
 // ========================
 // GET USER
 // ========================
