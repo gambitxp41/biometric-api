@@ -5,6 +5,10 @@ const fs = require("fs");
 const db = require("./db");
 require("dotenv").config();
 
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
 // ========================
 // APP INIT (FIXED)
 // ========================
@@ -41,19 +45,77 @@ app.get("/stats/reservations", async (req, res) => {
 // ========================
 //update user
 // ========================
-app.post("/update-user", async (req, res) => {
+app.post("/update-user", upload.single("profile_photo"), async (req, res) => {
     try {
-        const { username, password, role, biometric_id, subjects, course, year_level } = req.body;
+        const {
+            id,
+            username,
+            password,
+            role,
+            biometric_id,
+            subjects,
+            course,
+            year_level
+        } = req.body;
 
-        await db.query(
-            "INSERT INTO users (username, password, role, biometric_id, subjects, course, year_level) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [username, password, role, biometric_id, subjects, course, year_level]
-        );
+        const photo = req.file ? req.file.filename : null;
 
-        res.json({ success: true, message: "User added" });
+        // 🔥 ADD USER
+        if (!id) {
+            await db.query(
+                `INSERT INTO users 
+                (username, password, role, biometric_id, subjects, course, year_level, profile_photo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    username,
+                    password,
+                    role,
+                    biometric_id,
+                    subjects,
+                    course,
+                    year_level,
+                    photo
+                ]
+            );
+
+            return res.json({ success: true, message: "User added" });
+        }
+
+        // 🔥 UPDATE USER
+        let query = `
+            UPDATE users SET 
+            username=?, role=?, biometric_id=?, subjects=?, course=?, year_level=?
+        `;
+
+        let values = [
+            username,
+            role,
+            biometric_id,
+            subjects,
+            course,
+            year_level
+        ];
+
+        if (password) {
+            query += `, password=?`;
+            values.push(password);
+        }
+
+        if (photo) {
+            query += `, profile_photo=?`;
+            values.push(photo);
+        }
+
+        query += ` WHERE id=?`;
+        values.push(id);
+
+        await db.query(query, values);
+
+        res.json({ success: true, message: "User updated" });
 
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error(err);
+        res.status(500).json({ error: "Update failed" });
     }
 });
 // ========================
@@ -63,21 +125,31 @@ app.get("/delete-user", async (req, res) => {
     try {
         const { id } = req.query;
 
-        await db.query("DELETE FROM users WHERE id=?", [id]);
+        await db.query("DELETE FROM users WHERE id = ?", [id]);
 
         res.json({ success: true });
+
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error(err);
+        res.status(500).json({ error: "Delete failed" });
     }
 });
 // GET ALL USERS
 app.get("/users", async (req, res) => {
     try {
+        const { id } = req.query;
+
+        if (id) {
+            const [rows] = await db.query("SELECT * FROM users WHERE id = ?", [id]);
+            return res.json(rows[0] || null);
+        }
+
         const [rows] = await db.query("SELECT * FROM users");
         res.json(rows);
+
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Database error" });
+        res.status(500).json({ error: "DB error" });
     }
 });
 // ========================
@@ -382,19 +454,26 @@ app.get("/toggle-approval", async (req, res) => {
     try {
         const { id } = req.query;
 
-        await db.query(`
-            UPDATE users 
-            SET approvals = IF(approvals='approved','pending','approved')
-            WHERE id=?
-        `, [id]);
+        const [rows] = await db.query("SELECT approvals FROM users WHERE id = ?", [id]);
 
-        res.json({ success: true });
+        if (!rows.length) return res.json({ error: "User not found" });
+
+        const newStatus = rows[0].approvals === "approved"
+            ? "disapproved"
+            : "approved";
+
+        await db.query(
+            "UPDATE users SET approvals = ? WHERE id = ?",
+            [newStatus, id]
+        );
+
+        res.json({ success: true, status: newStatus });
 
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error(err);
+        res.status(500).json({ error: "Toggle failed" });
     }
 });
-
 // ========================
 // GLOBAL ERROR HANDLER
 // ========================
