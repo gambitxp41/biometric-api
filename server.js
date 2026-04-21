@@ -78,6 +78,76 @@ app.post("/update-biometric", async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
+// ========================
+// GET RECENT TRANSACTIONS
+// ========================
+app.get("/transactions", async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT t.id, i.item_name, u.username, t.procedure, t.status, t.borrow_time
+            FROM transactions t
+            LEFT JOIN inventory i ON t.item_id = i.id
+            LEFT JOIN users u ON t.user_id = u.id
+            ORDER BY t.borrow_time DESC
+            LIMIT 10
+        `);
+
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// ========================
+// GET RECENT RESERVATIONS
+// ========================
+app.get("/reservations", async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT r.id, i.item_name, u.username, r.start_time, r.end_time, r.status
+            FROM reservations r
+            LEFT JOIN inventory i ON r.item_id = i.id
+            LEFT JOIN users u ON r.user_id = u.id
+            ORDER BY r.start_time DESC
+            LIMIT 10
+        `);
+
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// ========================
+// COUNT BORROWED ITEMS
+// ========================
+app.get("/stats/borrowed", async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT COUNT(*) AS total 
+            FROM transactions 
+            WHERE status = 'borrowed'
+        `);
+
+        res.json({ total: rows[0].total });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// ========================
+// COUNT RETURNED ITEMS
+// ========================
+app.get("/stats/returned", async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT COUNT(*) AS total 
+            FROM transactions 
+            WHERE status = 'returned'
+        `);
+
+        res.json({ total: rows[0].total });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // ========================
 // GET BIOMETRIC
