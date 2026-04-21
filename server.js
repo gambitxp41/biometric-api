@@ -23,6 +23,21 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.get("/", (req, res) => {
     res.json({ status: "Biometric API Running 🚀" });
 });
+// ========================
+// COUNT RESERVATIONS
+// ========================
+app.get("/stats/reservations", async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT COUNT(*) AS total
+            FROM reservations
+        `);
+
+        res.json({ total: rows[0].total });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // ========================
 // GET USER
