@@ -1,12 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const multer = require("multer");
-const path = require("path");
 const fs = require("fs");
 const db = require("./db");
 require("dotenv").config();
-const app = express();
+
 
 // ========================
 // MIDDLEWARE
