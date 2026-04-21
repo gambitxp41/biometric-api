@@ -5,6 +5,10 @@ const fs = require("fs");
 const db = require("./db");
 require("dotenv").config();
 
+// ========================
+// APP INIT (FIXED)
+// ========================
+const app = express();
 
 // ========================
 // MIDDLEWARE
@@ -19,7 +23,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.get("/", (req, res) => {
     res.json({ status: "Biometric API Running 🚀" });
 });
-
 
 // ========================
 // GET USER
@@ -44,7 +47,7 @@ app.get("/get-user", async (req, res) => {
 });
 
 // ========================
-// UPDATE BIOMETRIC USING USERNAME
+// UPDATE BIOMETRIC
 // ========================
 app.post("/update-biometric", async (req, res) => {
     try {
@@ -63,10 +66,7 @@ app.post("/update-biometric", async (req, res) => {
         );
 
         if (result.affectedRows === 0) {
-            return res.json({
-                success: false,
-                message: "User not found"
-            });
+            return res.json({ success: false, message: "User not found" });
         }
 
         res.json({
@@ -75,15 +75,12 @@ app.post("/update-biometric", async (req, res) => {
         });
 
     } catch (err) {
-        res.status(500).json({
-            success: false,
-            error: err.message
-        });
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 
 // ========================
-// GET BIOMETRIC DATA
+// GET BIOMETRIC
 // ========================
 app.get("/get-biometric", async (req, res) => {
     try {
@@ -102,13 +99,115 @@ app.get("/get-biometric", async (req, res) => {
             return res.json({ success: false, message: "User not found" });
         }
 
+        res.json({ success: true, user: rows[0] });
+
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ========================
+// LOGIN
+// ========================
+app.post("/login", async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res.json({ success: false, message: "Missing username or password" });
+        }
+
+        const [rows] = await db.query(
+            "SELECT * FROM users WHERE username = ?",
+            [username]
+        );
+
+        if (rows.length === 0) {
+            return res.json({ success: false, message: "Username not found" });
+        }
+
+        const user = rows[0];
+
+        if (user.password !== password) {
+            return res.json({ success: false, message: "Invalid password" });
+        }
+
         res.json({
             success: true,
+            message: "Login successful",
+            user: {
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                biometric_id: user.biometric_id
+            }
+        });
+
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+// ========================
+// BIOMETRIC LOGIN
+// ========================
+app.post("/login-biometric", async (req, res) => {
+    try {
+        const { finger_id } = req.body;
+
+        if (!finger_id) {
+            return res.json({ success: false, message: "Missing finger_id" });
+        }
+
+        const [rows] = await db.query(
+            "SELECT id, username, role, biometric_id FROM users WHERE biometric_id=? OR id=?",
+            [finger_id, finger_id]
+        );
+
+        if (rows.length === 0) {
+            return res.json({ success: false, message: "Fingerprint not found" });
+        }
+
+        res.json({
+            success: true,
+            message: "Login successful",
             user: rows[0]
         });
 
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ========================
+// SIGNUP
+// ========================
+app.post("/signup", async (req, res) => {
+    try {
+        const { username, password, role } = req.body;
+
+        if (!username || !password) {
+            return res.json({ success: false, message: "Missing username or password" });
+        }
+
+        const [existing] = await db.query(
+            "SELECT * FROM users WHERE username=?",
+            [username]
+        );
+
+        if (existing.length > 0) {
+            return res.json({ success: false, message: "Username already exists" });
+        }
+
+        await db.query(
+            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+            [username, password, role || "student"]
+        );
+
+        res.json({ success: true, message: "Account created" });
+
+    } catch (err) {
+        res.json({ success: false, error: err.message });
     }
 });
 
@@ -132,153 +231,9 @@ app.get("/stats/inventory", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-app.post("/login", async (req, res) => {
-    try {
-        const { username, password } = req.body;
-
-        if (!username || !password) {
-            return res.json({ success: false, message: "Missing username or password" });
-        }
-
-        const [rows] = await db.query(
-            "SELECT * FROM users WHERE username = ?",
-            [username]
-        );
-
-        if (rows.length === 0) {
-            return res.json({ success: false, message: "Username not found" });
-        }
-
-        const user = rows[0];
-
-        // If password is plain text (NOT recommended)
-        if (user.password !== password) {
-            return res.json({ success: false, message: "Invalid password" });
-        }
-
-        res.json({
-            success: true,
-            message: "Login successful",
-            user: {
-                id: user.id,
-                username: user.username,
-                role: user.role,
-                biometric_id: user.biometric_id
-            }
-        });
-
-    } catch (err) {
-        res.json({ success: false, error: err.message });
-    }
-});
 
 // ========================
-// LOGIN BIOMETRIC (MAIN FIXED)
-// ========================
-app.post("/login-biometric", async (req, res) => {
-    try {
-        const { finger_id } = req.body;
-
-        if (!finger_id) {
-            return res.json({ success: false, message: "Missing finger_id" });
-        }
-
-        const [rows] = await db.query(
-            "SELECT id, username, role, biometric_id FROM users WHERE biometric_id=? OR id=?",
-            [finger_id, finger_id]
-        );
-
-        if (rows.length === 0) {
-            return res.json({
-                success: false,
-                message: "Fingerprint not found"
-            });
-        }
-
-        res.json({
-            success: true,
-            message: "Login successful",
-            user: rows[0]
-        });
-
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
-
-// ========================
-// SIGNUP (MAIN FIXED)
-// ========================
-app.post("/signup", async (req, res) => {
-    try {
-        const { username, password, role } = req.body;
-
-        if (!username || !password) {
-            return res.json({
-                success: false,
-                message: "Missing username or password"
-            });
-        }
-
-        const [existing] = await db.query(
-            "SELECT * FROM users WHERE username=?",
-            [username]
-        );
-
-        if (existing.length > 0) {
-            return res.json({
-                success: false,
-                message: "Username already exists"
-            });
-        }
-
-        // ❌ NO HASH (plain text)
-        await db.query(
-            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-            [username, password, role || "student"]
-        );
-
-        res.json({
-            success: true,
-            message: "Account created"
-        });
-
-    } catch (err) {
-        res.json({
-            success: false,
-            error: err.message
-        });
-    }
-});
-
-// ========================
-// ENROLL BIOMETRIC
-// ========================
-app.post("/enroll-fingerprint", async (req, res) => {
-    try {
-        const { username, biometric_id } = req.body;
-
-        if (!username || !biometric_id) {
-            return res.json({ success: false, message: "Missing data" });
-        }
-
-        await db.query(
-            "UPDATE users SET biometric_id=? WHERE username=?",
-            [biometric_id, username]
-        );
-
-        res.json({
-            success: true,
-            message: "Fingerprint saved"
-        });
-
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ========================
-// GLOBAL ERROR SAFETY
+// GLOBAL ERROR HANDLER
 // ========================
 process.on("unhandledRejection", (err) => {
     console.log("Unhandled Error:", err);
