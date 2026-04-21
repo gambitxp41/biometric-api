@@ -25,7 +25,27 @@ app.get("/", (req, res) => {
 // ========================
 // UPLOADS FOLDER (PUBLIC)
 // ========================
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// make sure uploads folder exists (Render fix)
+if (!fs.existsSync("./uploads")) {
+    fs.mkdirSync("./uploads");
+}
+
+// ========================
+// MULTER CONFIG
+// ========================
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, "uploads/");
+    },
+    filename: function (req, file, cb) {
+        const ext = path.extname(file.originalname);
+        cb(null, Date.now() + ext);
+    }
+});
+
+const upload = multer({ storage }); // ✅ THIS FIXES "upload is not defined"
 
 // ========================
 // UPLOAD ENDPOINT
@@ -41,12 +61,12 @@ app.post("/upload-photo", upload.single("profile_photo"), (req, res) => {
     const fileUrl =
         `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
 
-    res.json({
+    return res.json({
         success: true,
         filename: req.file.filename,
         url: fileUrl
     });
-
+});
 // ========================
 // GET USER
 // ========================
