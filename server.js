@@ -23,31 +23,7 @@ app.get("/", (req, res) => {
 // ========================
 // UPLOADS FOLDER (PUBLIC)
 // ========================
-const fs = require("fs");
 
-const uploadPath = path.join(__dirname, "uploads");
-
-// create folder if not exists (IMPORTANT for Render)
-if (!fs.existsSync(uploadPath)) {
-    fs.mkdirSync(uploadPath);
-}
-
-app.use("/uploads", express.static(uploadPath));
-
-// ========================
-// MULTER CONFIG
-// ========================
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadPath);
-    },
-    filename: function (req, file, cb) {
-        const ext = path.extname(file.originalname);
-        cb(null, Date.now() + ext);
-    }
-});
-
-const upload = multer({ storage });
 
 // ========================
 // UPLOAD ENDPOINT
