@@ -38,7 +38,38 @@ app.get("/stats/reservations", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+// ========================
+//update user
+// ========================
+app.post("/update-user", async (req, res) => {
+    try {
+        const { username, password, role, biometric_id, subjects, course, year_level } = req.body;
 
+        await db.query(
+            "INSERT INTO users (username, password, role, biometric_id, subjects, course, year_level) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [username, password, role, biometric_id, subjects, course, year_level]
+        );
+
+        res.json({ success: true, message: "User added" });
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// ========================
+// delete user
+// ========================
+app.get("/delete-user", async (req, res) => {
+    try {
+        const { id } = req.query;
+
+        await db.query("DELETE FROM users WHERE id=?", [id]);
+
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 // ========================
 // GET USER
 // ========================
@@ -60,6 +91,7 @@ app.get("/get-user", async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
 
 // ========================
 // UPDATE BIOMETRIC
@@ -328,6 +360,26 @@ app.get("/stats/inventory", async (req, res) => {
     try {
         const [rows] = await db.query("SELECT COUNT(*) AS total FROM inventory");
         res.json({ total: rows[0].total });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ========================
+// toggle approval
+// ========================
+app.get("/toggle-approval", async (req, res) => {
+    try {
+        const { id } = req.query;
+
+        await db.query(`
+            UPDATE users 
+            SET approvals = IF(approvals='approved','pending','approved')
+            WHERE id=?
+        `, [id]);
+
+        res.json({ success: true });
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
