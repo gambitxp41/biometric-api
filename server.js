@@ -29,6 +29,74 @@ app.get("/users", async (req, res) => {
     }
 });
 // ========================
+// login
+// ========================
+app.post("/login", async (req, res) => {
+    const { username, password } = req.body;
+
+    const [rows] = await db.query(
+        "SELECT * FROM users WHERE username=?",
+        [username]
+    );
+
+    if (!rows.length) {
+        return res.json({ success: false, message: "User not found" });
+    }
+
+    const user = rows[0];
+
+    if (user.password !== password) {
+        return res.json({ success: false, message: "Invalid password" });
+    }
+
+    res.json({
+        success: true,
+        user: user
+    });
+});
+// ========================
+// biometrics login
+// ========================
+app.post("/login-biometric", async (req, res) => {
+    const { finger_id } = req.body;
+
+    const [rows] = await db.query(
+        "SELECT * FROM users WHERE biometric_id=? OR id=?",
+        [finger_id, finger_id]
+    );
+
+    if (!rows.length) {
+        return res.json({ success: false, message: "Fingerprint not found" });
+    }
+
+    res.json({
+        success: true,
+        user: rows[0]
+    });
+});
+// ========================
+// signup
+// ========================
+app.post("/signup", async (req, res) => {
+    const { username, password, role } = req.body;
+
+    const [existing] = await db.query(
+        "SELECT * FROM users WHERE username=?",
+        [username]
+    );
+
+    if (existing.length > 0) {
+        return res.json({ success: false, message: "Username exists" });
+    }
+
+    await db.query(
+        "INSERT INTO users (username,password,role,approvals) VALUES (?,?,?, 'pending')",
+        [username, password, role || "student"]
+    );
+
+    res.json({ success: true });
+});
+// ========================
 // transactions
 // ========================
 app.get("/transactions", async (req, res) => {
