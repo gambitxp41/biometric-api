@@ -60,41 +60,35 @@ app.post("/update-user", async (req, res) => {
         // ADD USER
         // ========================
         if (!id) {
-            await db.query(
-                `INSERT INTO users 
-                (username, password, role, biometric_id, subjects, course, year_level, profile_photo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    username,
-                    password,
-                    role,
-                    biometric_id,
-                    subjects,
-                    course,
-                    year_level,
-                    profile_photo || null
-                ]
-            );
-
+           await db.query(
+    `INSERT INTO users 
+    (username, password, role, biometric_id, subjects, course, year_level, profile_photo, approvals)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+        username,
+        password,
+        role,
+        biometric_id,
+        subjects,
+        course,
+        year_level,
+        profile_photo || null,
+        "pending" // 👈 default
+    ]
+);
             return res.json({ success: true, message: "User added" });
         }
 
         // ========================
         // UPDATE USER
         // ========================
-        let query = `
-            UPDATE users SET 
-            username=?, role=?, biometric_id=?, subjects=?, course=?, year_level=?
-        `;
-
-        let values = [
-            username,
-            role,
-            biometric_id,
-            subjects,
-            course,
-            year_level
-        ];
+let query = `
+    UPDATE users SET 
+    username=?, role=?, biometric_id=?, subjects=?, course=?, year_level=?, approvals=?
+`;
+let values = [
+    username, role, biometric_id, subjects, course, year_level, approvals
+];
 
         if (password) {
             query += `, password=?`;
@@ -454,24 +448,37 @@ app.get("/toggle-approval", async (req, res) => {
     try {
         const { id } = req.query;
 
-        const [rows] = await db.query("SELECT approvals FROM users WHERE id = ?", [id]);
+        const [rows] = await db.query(
+            "SELECT approvals FROM users WHERE id = ?",
+            [id]
+        );
 
-        if (!rows.length) return res.json({ error: "User not found" });
+        if (!rows.length) {
+            return res.json({ success: false, message: "User not found" });
+        }
 
-        const newStatus = rows[0].approvals === "approved"
-            ? "disapproved"
-            : "approved";
+        let current = rows[0].approvals;
+        let newStatus;
+
+        // 🔥 3-state approval logic
+        if (current === "pending") {
+            newStatus = "approved";
+        } else if (current === "approved") {
+            newStatus = "disapproved";
+        } else {
+            newStatus = "approved"; // from disapproved → approved
+        }
 
         await db.query(
             "UPDATE users SET approvals = ? WHERE id = ?",
             [newStatus, id]
         );
 
-        res.json({ success: true, status: newStatus });
+        return res.json({ success: true, status: newStatus });
 
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Toggle failed" });
+        res.status(500).json({ success: false, error: "Toggle failed" });
     }
 });
 // ========================
