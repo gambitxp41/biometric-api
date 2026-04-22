@@ -114,6 +114,32 @@ app.post("/update-user", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+// ========================
+// GET SINGLE USER (REQUIRED FIX)
+// ========================
+app.get("/get-user", async (req, res) => {
+    try {
+        const { id } = req.query;
+
+        if (!id) {
+            return res.status(400).json({ error: "Missing id" });
+        }
+
+        const [rows] = await db.query(
+            "SELECT id, username, role, profile_photo FROM users WHERE id=?",
+            [id]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.json(rows[0]);
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // ========================
 // DELETE USER
