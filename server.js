@@ -40,9 +40,9 @@ app.get("/stats/reservations", async (req, res) => {
     }
 });
 // ========================
-//update user
+// ADD / UPDATE USER (NO FILE UPLOAD - BASE64 IMAGE)
 // ========================
-app.post("/update-user", upload.single("profile_photo"), async (req, res) => {
+app.post("/update-user", async (req, res) => {
     try {
         const {
             id,
@@ -52,12 +52,13 @@ app.post("/update-user", upload.single("profile_photo"), async (req, res) => {
             biometric_id,
             subjects,
             course,
-            year_level
+            year_level,
+            profile_photo
         } = req.body;
 
-        const photo = req.file ? req.file.filename : null;
-
-        // 🔥 ADD USER
+        // ========================
+        // ADD USER
+        // ========================
         if (!id) {
             await db.query(
                 `INSERT INTO users 
@@ -71,14 +72,16 @@ app.post("/update-user", upload.single("profile_photo"), async (req, res) => {
                     subjects,
                     course,
                     year_level,
-                    photo
+                    profile_photo || null
                 ]
             );
 
             return res.json({ success: true, message: "User added" });
         }
 
-        // 🔥 UPDATE USER
+        // ========================
+        // UPDATE USER
+        // ========================
         let query = `
             UPDATE users SET 
             username=?, role=?, biometric_id=?, subjects=?, course=?, year_level=?
@@ -98,9 +101,9 @@ app.post("/update-user", upload.single("profile_photo"), async (req, res) => {
             values.push(password);
         }
 
-        if (photo) {
+        if (profile_photo) {
             query += `, profile_photo=?`;
-            values.push(photo);
+            values.push(profile_photo);
         }
 
         query += ` WHERE id=?`;
@@ -112,7 +115,7 @@ app.post("/update-user", upload.single("profile_photo"), async (req, res) => {
 
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Update failed" });
+        res.status(500).json({ error: "Update failed", details: err.message });
     }
 });
 // ========================
