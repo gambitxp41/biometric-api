@@ -5,11 +5,6 @@ const fs = require("fs");
 const db = require("./db");
 require("dotenv").config();
 
-
-
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
 // ========================
 // APP INIT (FIXED)
 // ========================
