@@ -4,16 +4,16 @@ const bodyParser = require("body-parser");
 const fs = require("fs");
 const db = require("./db");
 require("dotenv").config();
-// ========================
-// APP INIT (FIXED)
-// ========================
-const app = express();
+
 
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
+// ========================
+// APP INIT (FIXED)
+// ========================
+const app = express();
 
 
 // ========================
