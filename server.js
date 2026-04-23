@@ -240,21 +240,39 @@ app.delete("/inventory/delete/:id", async (req, res) => {
 app.put("/inventory/photo/:id", async (req, res) => {
     try {
         const id = req.params.id;
-        const { photo } = req.body; // base64 string
+        const { photo } = req.body;
 
         if (!photo) {
-            return res.status(400).json({ success: false, message: "No photo provided" });
+            return res.status(400).json({
+                success: false,
+                message: "No photo provided"
+            });
         }
 
-        await db.query(
-            "UPDATE inventory SET photo=? WHERE id=?",
-            [photo, id]
+        // 🚀 UPLOAD TO CLOUDINARY
+        const result = await cloudinary.uploader.upload(
+            `data:image/jpeg;base64,${photo}`,
+            { folder: "inventory" }
         );
 
-        res.json({ success: true, message: "Photo updated" });
+        const imageUrl = result.secure_url;
+
+        // 💾 SAVE CLOUD URL IN DB
+        await db.query(
+            "UPDATE inventory SET photo=? WHERE id=?",
+            [imageUrl, id]
+        );
+
+        res.json({
+            success: true,
+            url: imageUrl
+        });
 
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
     }
 });
 // ========================
