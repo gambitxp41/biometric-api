@@ -41,7 +41,49 @@ async function uploadToCloudinary(base64Image) {
 
     return result.secure_url;
 }
+// ========================
+//report transactions
+// ========================
+app.get("/report-transactions", async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                t.*,
+                i.name AS item_name,
+                i.classification AS classification,
+                u.username
+            FROM transactions t
+            JOIN inventory i ON t.item_id = i.id
+            JOIN users u ON t.user_id = u.id
+            ORDER BY t.borrow_time DESC
+        `);
 
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// ========================
+// reports reservations
+// ========================
+app.get("/report-reservations", async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                r.*,
+                i.name AS item_name,
+                u.username
+            FROM reservations r
+            JOIN inventory i ON r.item_id = i.id
+            JOIN users u ON r.user_id = u.id
+            ORDER BY r.start_time DESC
+        `);
+
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 // ========================
 // GET USERS
 // ========================
