@@ -262,9 +262,9 @@ app.get("/get-user", async (req, res) => {
 // ========================
 // DELETE USER
 // ========================
-app.delete("/delete-user", async (req, res) => {
+app.get("/delete-user", async (req, res) => {
     try {
-        await db.query("DELETE FROM users WHERE id=?", [req.body.id]);
+        await db.query("DELETE FROM users WHERE id=?", [req.query.id]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
