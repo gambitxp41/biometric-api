@@ -1,5 +1,4 @@
 const express = require("express");
-const router = express.Router();
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const db = require("./db");
@@ -45,7 +44,7 @@ async function uploadToCloudinary(base64Image) {
 // =========================
 // GET FILTER OPTIONS
 // =========================
-router.get("/inventory-filters", async (req, res) => {
+app.get("/inventory-filters", async (req, res) => {
     try {
         const [years] = await db.query(`
             SELECT DISTINCT year FROM inventory
@@ -83,7 +82,7 @@ router.get("/inventory-filters", async (req, res) => {
 // =========================
 // GET INVENTORY (SEARCH + FILTER)
 // =========================
-router.get("/inventory", async (req, res) => {
+app.get("/inventory", async (req, res) => {
     try {
         const { search, year, procedure, semester, type } = req.query;
 
@@ -132,7 +131,7 @@ router.get("/inventory", async (req, res) => {
 // =========================
 // ADD ITEM
 // =========================
-router.post("/inventory/add", async (req, res) => {
+app.post("/inventory/add", async (req, res) => {
     try {
         const {
             name,
@@ -173,7 +172,7 @@ router.post("/inventory/add", async (req, res) => {
 // =========================
 // UPDATE ITEM
 // =========================
-router.put("/inventory/update/:id", async (req, res) => {
+app.put("/inventory/update/:id", async (req, res) => {
     try {
         const id = req.params.id;
         const {
@@ -221,7 +220,7 @@ router.put("/inventory/update/:id", async (req, res) => {
 // =========================
 // DELETE ITEM
 // =========================
-router.delete("/inventory/delete/:id", async (req, res) => {
+app.delete("/inventory/delete/:id", async (req, res) => {
     try {
         const id = req.params.id;
 
@@ -238,7 +237,7 @@ router.delete("/inventory/delete/:id", async (req, res) => {
 // =========================
 // UPDATE PHOTO (BASE64 IN DB)
 // =========================
-router.put("/inventory/photo/:id", async (req, res) => {
+app.put("/inventory/photo/:id", async (req, res) => {
     try {
         const id = req.params.id;
         const { photo } = req.body; // base64 string
