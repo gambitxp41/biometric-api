@@ -146,9 +146,8 @@ app.get("/reservations", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
 // ========================
-// ADD / UPDATE USER (FIXED)
+// GET SINGLE USER (REQUIRED FIX)
 // ========================
 app.post("/update-user", async (req, res) => {
     try {
@@ -164,72 +163,41 @@ app.post("/update-user", async (req, res) => {
             profile_photo
         } = req.body;
 
-        // ========================
-        // INSERT
-        // ========================
+        let sql = "";
+        let params = [];
+
+        // If NEW user
         if (!id) {
-            await db.query(
-                `INSERT INTO users 
-                (username, password, role, biometric_id, subjects, course, year_level, profile_photo, approvals)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-                [
-                    username,
-                    password,
-                    role,
-                    biometric_id,
-                    subjects,
-                    course,
-                    year_level,
-                    profile_photo || null
-                ]
-            );
-
-            return res.json({ success: true, message: "User added" });
+            sql = `
+                INSERT INTO users 
+                (username, password, role, biometric_id, subjects, course, year_level, profile_photo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+            params = [username, password, role, biometric_id, subjects, course, year_level, profile_photo];
+        }
+        // If update existing user
+        else {
+            sql = `
+                UPDATE users SET
+                username=?,
+                password=?,
+                role=?,
+                biometric_id=?,
+                subjects=?,
+                course=?,
+                year_level=?,
+                profile_photo=?
+                WHERE id=?
+            `;
+            params = [username, password, role, biometric_id, subjects, course, year_level, profile_photo, id];
         }
 
-        // ========================
-        // UPDATE (FIXED SQL)
-        // ========================
-        let fields = `
-            username=?, 
-            role=?, 
-            biometric_id=?, 
-            subjects=?, 
-            course=?, 
-            year_level=?
-        `;
+        await db.query(sql, params);
 
-        let values = [
-            username,
-            role,
-            biometric_id,
-            subjects,
-            course,
-            year_level
-        ];
-
-        if (password) {
-            fields += `, password=?`;
-            values.push(password);
-        }
-
-        if (profile_photo) {
-            fields += `, profile_photo=?`;
-            values.push(profile_photo);
-        }
-
-        values.push(id);
-
-        await db.query(
-            `UPDATE users SET ${fields} WHERE id=?`,
-            values
-        );
-
-        res.json({ success: true, message: "User updated" });
+        res.json({ success: true });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
+        res.json({ success: false, error: err.message });
     }
 });
 // ========================
