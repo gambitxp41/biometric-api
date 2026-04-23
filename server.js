@@ -243,36 +243,23 @@ app.put("/inventory/photo/:id", async (req, res) => {
         const { photo } = req.body;
 
         if (!photo) {
-            return res.status(400).json({
-                success: false,
-                message: "No photo provided"
-            });
+            return res.status(400).json({ success: false, message: "No photo" });
         }
 
-        // 🚀 UPLOAD TO CLOUDINARY
         const result = await cloudinary.uploader.upload(
             `data:image/jpeg;base64,${photo}`,
-            { folder: "inventory" }
+            { folder: "inventory_items" }
         );
 
-        const imageUrl = result.secure_url;
-
-        // 💾 SAVE CLOUD URL IN DB
         await db.query(
             "UPDATE inventory SET photo=? WHERE id=?",
-            [imageUrl, id]
+            [result.secure_url, id]
         );
 
-        res.json({
-            success: true,
-            url: imageUrl
-        });
+        res.json({ success: true, url: result.secure_url });
 
     } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: err.message
-        });
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 // ========================
