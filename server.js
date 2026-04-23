@@ -62,15 +62,15 @@ app.get("/inventory-filters", async (req, res) => {
         `);
 
         const [types] = await db.query(`
-            SELECT DISTINCT \`theory/rle\` FROM inventory
-            WHERE \`theory/rle\` IS NOT NULL AND \`theory/rle\` != ''
+            SELECT DISTINCT \`theory_rle\` FROM inventory
+            WHERE \`theory_rle\` IS NOT NULL AND \`theory_rle\` != ''
         `);
 
         res.json({
             years: years.map(r => r.year),
             procedures: procedures.map(r => r.procedure),
             semesters: semesters.map(r => r.semester),
-            types: types.map(r => r["theory/rle"])
+            types: types.map(r => r["theory_rle"])
         });
 
     } catch (err) {
@@ -147,7 +147,7 @@ app.post("/inventory/add", async (req, res) => {
 
         await db.query(`
             INSERT INTO inventory
-            (name, classification, quantity, \`procedure\`, subject, semester, year, photo, \`theory/rle\`)
+            (name, classification, quantity, \`procedure\`, subject, semester, year, photo, \`theory_rle\`)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             name,
@@ -195,7 +195,7 @@ app.put("/inventory/update/:id", async (req, res) => {
             subject=?,
             semester=?,
             year=?,
-            \`theory/rle\`=?
+            \`theory_rle\`=?
             WHERE id=?
         `, [
             name,
