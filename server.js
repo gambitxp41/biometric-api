@@ -112,7 +112,7 @@ app.get("/inventory", async (req, res) => {
         }
 
         if (type) {
-            sql += " AND `theory/rle`=?";
+            sql += " AND `theory_rle`=?";
             params.push(type);
         }
 
