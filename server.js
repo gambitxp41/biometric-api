@@ -5,7 +5,7 @@ const db = require("./db");
 require("dotenv").config();
 
 // ========================
-// CLOUDINARY IMPORT (ADDED)
+// CLOUDINARY
 // ========================
 const cloudinary = require("cloudinary").v2;
 
@@ -29,19 +29,17 @@ app.get("/", (req, res) => {
 });
 
 // ========================
-// CLOUDINARY UPLOAD FUNCTION (NEW BUT SAFE)
+// CLOUDINARY UPLOAD
 // ========================
 async function uploadToCloudinary(base64Image) {
     if (!base64Image) return null;
 
     const result = await cloudinary.uploader.upload(
         `data:image/jpeg;base64,${base64Image}`,
-        {
-            folder: "biometric_users"
-        }
+        { folder: "biometric_users" }
     );
 
-    return result.secure_url; // IMPORTANT: store URL not base64
+    return result.secure_url;
 }
 
 // ========================
@@ -57,7 +55,7 @@ app.get("/users", async (req, res) => {
 });
 
 // ========================
-// login
+// LOGIN
 // ========================
 app.post("/login", async (req, res) => {
     const { username, password } = req.body;
@@ -81,7 +79,7 @@ app.post("/login", async (req, res) => {
 });
 
 // ========================
-// biometrics login
+// BIOMETRIC LOGIN
 // ========================
 app.post("/login-biometric", async (req, res) => {
     const { finger_id } = req.body;
@@ -99,7 +97,7 @@ app.post("/login-biometric", async (req, res) => {
 });
 
 // ========================
-// signup
+// SIGNUP
 // ========================
 app.post("/signup", async (req, res) => {
     const { username, password, role } = req.body;
@@ -122,7 +120,7 @@ app.post("/signup", async (req, res) => {
 });
 
 // ========================
-// UPDATE USER (UPDATED WITH CLOUDINARY)
+// UPDATE USER (CLOUDINARY)
 // ========================
 app.post("/update-user", async (req, res) => {
     try {
@@ -138,11 +136,9 @@ app.post("/update-user", async (req, res) => {
             profile_photo
         } = req.body;
 
-        // 🔥 UPLOAD IMAGE TO CLOUDINARY
-        let imageUrl = null;
-        if (profile_photo) {
-            imageUrl = await uploadToCloudinary(profile_photo);
-        }
+        let imageUrl = profile_photo
+            ? await uploadToCloudinary(profile_photo)
+            : null;
 
         let sql = "";
         let params = [];
@@ -180,6 +176,29 @@ app.post("/update-user", async (req, res) => {
 });
 
 // ========================
+// GET SINGLE USER
+// ========================
+app.get("/get-user", async (req, res) => {
+    try {
+        const { id } = req.query;
+
+        if (!id) return res.status(400).json({ error: "Missing id" });
+
+        const [rows] = await db.query(
+            "SELECT id, username, role, profile_photo FROM users WHERE id=?",
+            [id]
+        );
+
+        if (!rows.length) return res.status(404).json({ error: "User not found" });
+
+        res.json(rows[0]);
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ========================
 // DELETE USER
 // ========================
 app.get("/delete-user", async (req, res) => {
@@ -203,6 +222,8 @@ app.get("/toggle-approval", async (req, res) => {
             [id]
         );
 
+        if (!rows.length) return res.json({ success: false });
+
         let current = rows[0].approvals;
 
         let next =
@@ -217,6 +238,58 @@ app.get("/toggle-approval", async (req, res) => {
 
         res.json({ success: true, status: next });
 
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ========================
+// TRANSACTIONS (RESTORED)
+// ========================
+app.get("/transactions", async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                t.id,
+                i.name AS item_name,
+                u.username,
+                t.procedure,
+                t.status,
+                t.borrow_time
+            FROM transactions t
+            LEFT JOIN inventory i ON t.item_id = i.id
+            LEFT JOIN users u ON t.user_id = u.id
+            ORDER BY t.borrow_time DESC
+            LIMIT 10
+        `);
+
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ========================
+// RESERVATIONS (RESTORED)
+// ========================
+app.get("/reservations", async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                r.id,
+                i.name AS item_name,
+                u.username,
+                r.start_time,
+                r.end_time,
+                r.status
+            FROM reservations r
+            LEFT JOIN inventory i ON r.item_id = i.id
+            LEFT JOIN users u ON r.user_id = u.id
+            ORDER BY r.start_time DESC
+            LIMIT 10
+        `);
+
+        res.json(rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
