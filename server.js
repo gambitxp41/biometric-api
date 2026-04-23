@@ -41,6 +41,222 @@ async function uploadToCloudinary(base64Image) {
 
     return result.secure_url;
 }
+// =========================
+// GET FILTER OPTIONS
+// =========================
+router.get("/inventory-filters", async (req, res) => {
+    try {
+        const [years] = await db.query(`
+            SELECT DISTINCT year FROM inventory
+            WHERE year IS NOT NULL AND year != ''
+        `);
+
+        const [procedures] = await db.query(`
+            SELECT DISTINCT \`procedure\` FROM inventory
+            WHERE \`procedure\` IS NOT NULL AND \`procedure\` != ''
+        `);
+
+        const [semesters] = await db.query(`
+            SELECT DISTINCT semester FROM inventory
+            WHERE semester IS NOT NULL AND semester != ''
+        `);
+
+        const [types] = await db.query(`
+            SELECT DISTINCT \`theory/rle\` FROM inventory
+            WHERE \`theory/rle\` IS NOT NULL AND \`theory/rle\` != ''
+        `);
+
+        res.json({
+            years: years.map(r => r.year),
+            procedures: procedures.map(r => r.procedure),
+            semesters: semesters.map(r => r.semester),
+            types: types.map(r => r["theory/rle"])
+        });
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+
+// =========================
+// GET INVENTORY (SEARCH + FILTER)
+// =========================
+router.get("/inventory", async (req, res) => {
+    try {
+        const { search, year, procedure, semester, type } = req.query;
+
+        let sql = "SELECT * FROM inventory WHERE 1=1";
+        let params = [];
+
+        // SEARCH
+        if (search) {
+            sql += " AND (name LIKE ? OR subject LIKE ?)";
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        // FILTERS
+        if (year) {
+            sql += " AND year=?";
+            params.push(year);
+        }
+
+        if (procedure) {
+            sql += " AND `procedure`=?";
+            params.push(procedure);
+        }
+
+        if (semester) {
+            sql += " AND semester=?";
+            params.push(semester);
+        }
+
+        if (type) {
+            sql += " AND `theory/rle`=?";
+            params.push(type);
+        }
+
+        sql += " ORDER BY id DESC";
+
+        const [rows] = await db.query(sql, params);
+
+        res.json(rows);
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+
+// =========================
+// ADD ITEM
+// =========================
+router.post("/inventory/add", async (req, res) => {
+    try {
+        const {
+            name,
+            classification,
+            quantity,
+            procedure,
+            subject,
+            semester,
+            year,
+            theory_rle,
+            photo // base64 string
+        } = req.body;
+
+        await db.query(`
+            INSERT INTO inventory
+            (name, classification, quantity, \`procedure\`, subject, semester, year, photo, \`theory/rle\`)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+            name,
+            classification,
+            quantity,
+            procedure,
+            subject,
+            semester,
+            year,
+            photo || null,
+            theory_rle
+        ]);
+
+        res.json({ success: true, message: "Item added" });
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+
+// =========================
+// UPDATE ITEM
+// =========================
+router.put("/inventory/update/:id", async (req, res) => {
+    try {
+        const id = req.params.id;
+        const {
+            name,
+            classification,
+            quantity,
+            procedure,
+            subject,
+            semester,
+            year,
+            theory_rle
+        } = req.body;
+
+        await db.query(`
+            UPDATE inventory SET
+            name=?,
+            classification=?,
+            quantity=?,
+            \`procedure\`=?,
+            subject=?,
+            semester=?,
+            year=?,
+            \`theory/rle\`=?
+            WHERE id=?
+        `, [
+            name,
+            classification,
+            quantity,
+            procedure,
+            subject,
+            semester,
+            year,
+            theory_rle,
+            id
+        ]);
+
+        res.json({ success: true, message: "Updated successfully" });
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+
+// =========================
+// DELETE ITEM
+// =========================
+router.delete("/inventory/delete/:id", async (req, res) => {
+    try {
+        const id = req.params.id;
+
+        await db.query("DELETE FROM inventory WHERE id=?", [id]);
+
+        res.json({ success: true, message: "Deleted successfully" });
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+
+// =========================
+// UPDATE PHOTO (BASE64 IN DB)
+// =========================
+router.put("/inventory/photo/:id", async (req, res) => {
+    try {
+        const id = req.params.id;
+        const { photo } = req.body; // base64 string
+
+        if (!photo) {
+            return res.status(400).json({ success: false, message: "No photo provided" });
+        }
+
+        await db.query(
+            "UPDATE inventory SET photo=? WHERE id=?",
+            [photo, id]
+        );
+
+        res.json({ success: true, message: "Photo updated" });
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
 // ========================
 //report transactions
 // ========================
