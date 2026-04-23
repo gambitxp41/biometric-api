@@ -4,6 +4,17 @@ const bodyParser = require("body-parser");
 const db = require("./db");
 require("dotenv").config();
 
+// ========================
+// CLOUDINARY IMPORT (ADDED)
+// ========================
+const cloudinary = require("cloudinary").v2;
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 const app = express();
 
 app.use(cors());
@@ -18,6 +29,22 @@ app.get("/", (req, res) => {
 });
 
 // ========================
+// CLOUDINARY UPLOAD FUNCTION (NEW BUT SAFE)
+// ========================
+async function uploadToCloudinary(base64Image) {
+    if (!base64Image) return null;
+
+    const result = await cloudinary.uploader.upload(
+        `data:image/jpeg;base64,${base64Image}`,
+        {
+            folder: "biometric_users"
+        }
+    );
+
+    return result.secure_url; // IMPORTANT: store URL not base64
+}
+
+// ========================
 // GET USERS
 // ========================
 app.get("/users", async (req, res) => {
@@ -28,6 +55,7 @@ app.get("/users", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 // ========================
 // login
 // ========================
@@ -49,11 +77,9 @@ app.post("/login", async (req, res) => {
         return res.json({ success: false, message: "Invalid password" });
     }
 
-    res.json({
-        success: true,
-        user: user
-    });
+    res.json({ success: true, user });
 });
+
 // ========================
 // biometrics login
 // ========================
@@ -69,11 +95,9 @@ app.post("/login-biometric", async (req, res) => {
         return res.json({ success: false, message: "Fingerprint not found" });
     }
 
-    res.json({
-        success: true,
-        user: rows[0]
-    });
+    res.json({ success: true, user: rows[0] });
 });
+
 // ========================
 // signup
 // ========================
@@ -96,58 +120,9 @@ app.post("/signup", async (req, res) => {
 
     res.json({ success: true });
 });
-// ========================
-// transactions
-// ========================
-app.get("/transactions", async (req, res) => {
-    try {
-        const [rows] = await db.query(`
-            SELECT 
-                t.id,
-                i.name AS item_name,
-                u.username,
-                t.procedure,
-                t.status,
-                t.borrow_time
-            FROM transactions t
-            LEFT JOIN inventory i ON t.item_id = i.id
-            LEFT JOIN users u ON t.user_id = u.id
-            ORDER BY t.borrow_time DESC
-            LIMIT 10
-        `);
 
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 // ========================
-// reservations
-// ========================
-app.get("/reservations", async (req, res) => {
-    try {
-        const [rows] = await db.query(`
-            SELECT 
-                r.id,
-                i.name AS item_name,
-                u.username,
-                r.start_time,
-                r.end_time,
-                r.status
-            FROM reservations r
-            LEFT JOIN inventory i ON r.item_id = i.id
-            LEFT JOIN users u ON r.user_id = u.id
-            ORDER BY r.start_time DESC
-            LIMIT 10
-        `);
-
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-// ========================
-// GET SINGLE USER (REQUIRED FIX)
+// UPDATE USER (UPDATED WITH CLOUDINARY)
 // ========================
 app.post("/update-user", async (req, res) => {
     try {
@@ -163,20 +138,23 @@ app.post("/update-user", async (req, res) => {
             profile_photo
         } = req.body;
 
+        // 🔥 UPLOAD IMAGE TO CLOUDINARY
+        let imageUrl = null;
+        if (profile_photo) {
+            imageUrl = await uploadToCloudinary(profile_photo);
+        }
+
         let sql = "";
         let params = [];
 
-        // If NEW user
         if (!id) {
             sql = `
                 INSERT INTO users 
                 (username, password, role, biometric_id, subjects, course, year_level, profile_photo)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `;
-            params = [username, password, role, biometric_id, subjects, course, year_level, profile_photo];
-        }
-        // If update existing user
-        else {
+            params = [username, password, role, biometric_id, subjects, course, year_level, imageUrl];
+        } else {
             sql = `
                 UPDATE users SET
                 username=?,
@@ -189,7 +167,7 @@ app.post("/update-user", async (req, res) => {
                 profile_photo=?
                 WHERE id=?
             `;
-            params = [username, password, role, biometric_id, subjects, course, year_level, profile_photo, id];
+            params = [username, password, role, biometric_id, subjects, course, year_level, imageUrl, id];
         }
 
         await db.query(sql, params);
@@ -198,32 +176,6 @@ app.post("/update-user", async (req, res) => {
 
     } catch (err) {
         res.json({ success: false, error: err.message });
-    }
-});
-// ========================
-// GET SINGLE USER (REQUIRED FIX)
-// ========================
-app.get("/get-user", async (req, res) => {
-    try {
-        const { id } = req.query;
-
-        if (!id) {
-            return res.status(400).json({ error: "Missing id" });
-        }
-
-        const [rows] = await db.query(
-            "SELECT id, username, role, profile_photo FROM users WHERE id=?",
-            [id]
-        );
-
-        if (rows.length === 0) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        res.json(rows[0]);
-
-    } catch (err) {
-        res.status(500).json({ error: err.message });
     }
 });
 
@@ -240,7 +192,7 @@ app.get("/delete-user", async (req, res) => {
 });
 
 // ========================
-// TOGGLE APPROVAL (FIXED)
+// TOGGLE APPROVAL
 // ========================
 app.get("/toggle-approval", async (req, res) => {
     try {
@@ -250,10 +202,6 @@ app.get("/toggle-approval", async (req, res) => {
             "SELECT approvals FROM users WHERE id=?",
             [id]
         );
-
-        if (!rows.length) {
-            return res.json({ success: false });
-        }
 
         let current = rows[0].approvals;
 
