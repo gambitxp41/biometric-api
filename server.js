@@ -340,6 +340,22 @@ app.post("/login", async (req, res) => {
 
     res.json({ success: true, user });
 });
+// ========================
+// get fingerprint
+// ========================
+app.get("/fingerprints", async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT id, biometric_id 
+            FROM users 
+            WHERE biometric_id IS NOT NULL
+        `);
+
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // ========================
 // BIOMETRIC LOGIN
@@ -347,18 +363,39 @@ app.post("/login", async (req, res) => {
 app.post("/login-biometric", async (req, res) => {
     const { finger_id } = req.body;
 
-    const [rows] = await db.query(
-        "SELECT * FROM users WHERE biometric_id=? OR id=?",
-        [finger_id, finger_id]
-    );
+    try {
+        const [rows] = await db.query(
+            "SELECT * FROM users WHERE id=?",
+            [finger_id]
+        );
 
-    if (!rows.length) {
-        return res.json({ success: false, message: "Fingerprint not found" });
+        if (!rows.length) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        res.json({ success: true, user: rows[0] });
+
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+// ========================
+// update bio
+// ========================
+app.post("/update-bio", async (req, res) => {
+    const { id, biometric_id } = req.body;
+
+    if (!id || !biometric_id) {
+        return res.status(400).json({ success: false });
     }
 
-    res.json({ success: true, user: rows[0] });
-});
+    await db.query(
+        "UPDATE users SET biometric_id=? WHERE id=?",
+        [biometric_id, id]
+    );
 
+    res.json({ success: true });
+});
 // ========================
 // SIGNUP
 // ========================
