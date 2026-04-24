@@ -15,6 +15,8 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+
+
 const app = express();
 
 app.use(cors());
@@ -26,6 +28,12 @@ app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
 // ========================
 app.get("/", (req, res) => {
     res.json({ status: "Biometric API Running 🚀" });
+});
+// ========================
+// open
+// ========================
+app.get("/open-pandora", (req, res) => {
+    res.redirect("https://pandoratest.free.nf/dashboard.php");
 });
 
 // ========================
