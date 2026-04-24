@@ -34,7 +34,7 @@ app.get("/", (req, res) => {
 // open
 // ========================
 app.get("/open-pandora", (req, res) => {
-    res.redirect("https://pandoratest.free.nf/admin/dashboard.php");
+    res.redirect("https://ncf-pandora.free.nf/admin/dashboard.php");
 });
 // ========================
 //api login
