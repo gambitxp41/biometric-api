@@ -383,19 +383,39 @@ app.post("/login-biometric", async (req, res) => {
 // update bio
 // ========================
 app.post("/update-bio", async (req, res) => {
-    const { id, biometric_id } = req.body;
+    try {
+        const { id, biometric_id } = req.body;
 
-    if (!id || !biometric_id) {
-        return res.status(400).json({ success: false });
+        console.log("DEBUG BODY:", req.body);
+
+        if (!id || !biometric_id) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing id or biometric_id"
+            });
+        }
+
+        const [result] = await db.query(
+            "UPDATE users SET biometric_id=? WHERE id=?",
+            [biometric_id, id]
+        );
+
+        console.log("UPDATE RESULT:", result);
+
+        res.json({
+            success: true,
+            message: "Biometric saved",
+            affectedRows: result.affectedRows
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
     }
-
-    await db.query(
-        "UPDATE users SET biometric_id=? WHERE id=?",
-        [biometric_id, id]
-    );
-
-    res.json({ success: true });
-});
+});;
 // ========================
 // SIGNUP
 // ========================
