@@ -36,7 +36,28 @@ app.get("/", (req, res) => {
 app.get("/open-pandora", (req, res) => {
     res.redirect("https://pandoratest.free.nf/admin/dashboard.php");
 });
+// ========================
+//api login
+// ========================
+app.post("/api-login", async (req, res) => {
+    const { id } = req.body;
 
+    try {
+        const [rows] = await db.query("SELECT * FROM users WHERE id=?", [id]);
+
+        if (!rows.length) {
+            return res.json({ success: false });
+        }
+
+        return res.json({
+            success: true,
+            user: rows[0]
+        });
+
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 // ========================
 // CLOUDINARY UPLOAD
 // ========================
