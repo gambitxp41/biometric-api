@@ -33,7 +33,7 @@ app.get("/", (req, res) => {
 // open
 // ========================
 app.get("/open-pandora", (req, res) => {
-    res.redirect("https://pandoratest.free.nf/dashboard.php");
+    res.redirect("https://pandoratest.free.nf/admin/dashboard.php");
 });
 
 // ========================
