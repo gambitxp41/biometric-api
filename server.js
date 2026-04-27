@@ -186,7 +186,7 @@ app.get("/inventory-filters", async (req, res) => {
 // ========================
 // GET INVENTORY LIST
 // ========================
-app.get("/inventory2", async (req, res) => {
+app.get("/inventory", async (req, res) => {
     try {
         const { user_id, search = "" } = req.query;
 
