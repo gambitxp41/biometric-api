@@ -15,7 +15,9 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-
+// ========================
+//app post
+// ========================
 
 const app = express();
 app.use(express.urlencoded({ extended: true }));
@@ -35,6 +37,49 @@ app.get("/", (req, res) => {
 // ========================
 app.get("/open-pandora", (req, res) => {
     res.redirect("https://ncf-pandora.free.nf/admin/dashboard.php");
+});
+// ========================
+// BORROW ITEM
+// ========================
+app.post("/borrow-item", async (req, res) => {
+    try {
+        const { user_id, item_id, quantity, procedure } = req.body;
+
+        // Check stock
+        const [inv] = await db.query(
+            "SELECT quantity FROM inventory WHERE id = ?",
+            [item_id]
+        );
+
+        if (inv.length === 0) {
+            return res.json({ success: false, message: "Item not found" });
+        }
+
+        const available = inv[0].quantity;
+
+        if (available < quantity) {
+            return res.json({ success: false, message: "Not enough stock!" });
+        }
+
+        // Deduct stock
+        await db.query(
+            "UPDATE inventory SET quantity = quantity - ? WHERE id = ?",
+            [quantity, item_id]
+        );
+
+        // Insert transaction
+        await db.query(
+            `INSERT INTO transactions (user_id, item_id, procedure, quantity, status)
+             VALUES (?, ?, ?, ?, 'inuse')`,
+            [user_id, item_id, procedure, quantity]
+        );
+
+        return res.json({ success: true, message: "Item borrowed successfully!" });
+
+    } catch (err) {
+        console.error(err);
+        res.json({ success: false, message: "Server error" });
+    }
 });
 // ========================
 //app post
@@ -136,6 +181,48 @@ app.get("/inventory-filters", async (req, res) => {
 
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
+    }
+});
+// ========================
+// GET INVENTORY LIST
+// ========================
+app.get("/inventory2", async (req, res) => {
+    try {
+        const { user_id, search = "" } = req.query;
+
+        // Get user subjects
+        const [users] = await db.query(
+            "SELECT subjects FROM users WHERE id = ?",
+            [user_id]
+        );
+
+        if (users.length === 0) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        const subjects = users[0].subjects.split(",");
+
+        // Build SQL
+        let sql = `
+            SELECT * FROM inventory
+            WHERE (subject IN (?) OR subject='All')
+        `;
+        let params = [subjects];
+
+        if (search) {
+            sql += " AND (name LIKE ? OR subject LIKE ?)";
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        sql += " ORDER BY id DESC";
+
+        const [items] = await db.query(sql, params);
+
+        return res.json({ success: true, items });
+
+    } catch (err) {
+        console.error(err);
+        res.json({ success: false, message: "Server error" });
     }
 });
 
