@@ -293,7 +293,37 @@ app.get("/inventory", async (req, res) => {
         res.json({ success: false, message: "Server error" });
     }
 });
+// =========================
+// TRANSACTIONS
+// =========================
+app.get("/transactions", async (req, res) => {
+    try {
+        const { user_id } = req.query;
 
+        let sql = `
+            SELECT t.*, i.name AS item_name
+            FROM transactions t
+            JOIN inventory i ON t.item_id = i.id
+            WHERE t.status != 'returned'
+        `;
+
+        let params = [];
+
+        if (user_id) {
+            sql += " AND t.user_id=?";
+            params.push(user_id);
+        }
+
+        sql += " ORDER BY t.borrow_time DESC";
+
+        const [rows] = await db.query(sql, params);
+
+        res.json(rows);
+
+    } catch (err) {
+        res.json([]);
+    }
+});
 
 // =========================
 // GET INVENTORY (SEARCH + FILTER)
