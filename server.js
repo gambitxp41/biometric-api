@@ -82,6 +82,26 @@ app.post("/borrow-item", async (req, res) => {
     }
 });
 // ========================
+//reserve items
+// ========================
+app.post("/reserve-item", async (req, res) => {
+    try {
+        const { user_id, item_id, start_time, end_time } = req.body;
+
+        await db.query(
+            `INSERT INTO reservations (user_id, item_id, start_time, end_time, status)
+             VALUES (?, ?, ?, ?, 'pending')`,
+            [user_id, item_id, start_time, end_time]
+        );
+
+        res.json({ success: true, message: "Reservation submitted successfully!" });
+
+    } catch (err) {
+        console.error(err);
+        res.json({ success: false, message: "Server error" });
+    }
+});
+// ========================
 //app post
 // ========================
 app.post("/get-user-by-id", async (req, res) => {
