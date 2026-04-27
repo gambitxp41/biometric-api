@@ -102,6 +102,54 @@ app.post("/reserve-item", async (req, res) => {
     }
 });
 // ========================
+//RETURN ITEMS
+// ========================
+app.post("/return-item", async (req, res) => {
+    try {
+        const { transaction_id } = req.body;
+
+        // 1. Get transaction
+        const [rows] = await db.query(
+            "SELECT * FROM transactions WHERE id=?",
+            [transaction_id]
+        );
+
+        if (!rows.length) {
+            return res.json({ success: false, message: "Transaction not found" });
+        }
+
+        const t = rows[0];
+
+        if (t.status === "returned") {
+            return res.json({ success: false, message: "Already returned" });
+        }
+
+        // 2. Update transaction
+        await db.query(
+            "UPDATE transactions SET status='returned', return_time=NOW() WHERE id=?",
+            [transaction_id]
+        );
+
+        // 3. Return stock
+        await db.query(
+            "UPDATE inventory SET quantity = quantity + ? WHERE id=?",
+            [t.quantity, t.item_id]
+        );
+
+        res.json({
+            success: true,
+            message: "Item returned successfully!"
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.json({
+            success: false,
+            message: "Server error"
+        });
+    }
+});
+// ========================
 //app post
 // ========================
 app.post("/get-user-by-id", async (req, res) => {
