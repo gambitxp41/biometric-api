@@ -37,56 +37,6 @@ app.get("/open-pandora", (req, res) => {
     res.redirect("https://ncf-pandora.free.nf/admin/dashboard.php");
 });
 // ========================
-//migrate
-// ========================
-app.get("/migrate-inventory-photos", async (req, res) => {
-    try {
-        const [items] = await db.query("SELECT * FROM inventory");
-
-        let success = 0;
-        let failed = 0;
-
-        for (let item of items) {
-            try {
-                if (!item.photo) continue;
-
-                // skip already migrated
-                if (item.photo.startsWith("http")) continue;
-
-                const filePath = `./uploads/items/${item.photo}`;
-                const fs = require("fs");
-
-                if (!fs.existsSync(filePath)) {
-                    console.log("Missing:", filePath);
-                    failed++;
-                    continue;
-                }
-
-                const result = await cloudinary.uploader.upload(filePath, {
-                    folder: "inventory_items"
-                });
-
-                await db.query(
-                    "UPDATE inventory SET photo=? WHERE id=?",
-                    [result.secure_url, item.id]
-                );
-
-                console.log("✔ Migrated ID:", item.id);
-                success++;
-
-            } catch (err) {
-                console.log("Error:", item.id, err.message);
-                failed++;
-            }
-        }
-
-        res.json({ success, failed });
-
-    } catch (err) {
-        res.json({ error: err.message });
-    }
-});
-// ========================
 //app post
 // ========================
 app.post("/get-user-by-id", async (req, res) => {
