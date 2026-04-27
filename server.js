@@ -43,7 +43,24 @@ app.get("/open-pandora", (req, res) => {
 // ========================
 app.post("/borrow-item", async (req, res) => {
     try {
-        const { user_id, item_id, quantity, procedure } = req.body;
+        let { user_id, item_id, quantity, procedure } = req.body;
+
+        // FORCE NUMBER (VERY IMPORTANT)
+        quantity = parseInt(quantity);
+
+        if (!user_id || !item_id || !quantity || !procedure) {
+            return res.json({
+                success: false,
+                message: "Missing fields"
+            });
+        }
+
+        if (quantity <= 0) {
+            return res.json({
+                success: false,
+                message: "Invalid quantity"
+            });
+        }
 
         // Check stock
         const [inv] = await db.query(
@@ -51,14 +68,20 @@ app.post("/borrow-item", async (req, res) => {
             [item_id]
         );
 
-        if (inv.length === 0) {
-            return res.json({ success: false, message: "Item not found" });
+        if (!inv.length) {
+            return res.json({
+                success: false,
+                message: "Item not found"
+            });
         }
 
-        const available = inv[0].quantity;
+        const available = parseInt(inv[0].quantity);
 
         if (available < quantity) {
-            return res.json({ success: false, message: "Not enough stock!" });
+            return res.json({
+                success: false,
+                message: "Not enough stock!"
+            });
         }
 
         // Deduct stock
@@ -74,11 +97,18 @@ app.post("/borrow-item", async (req, res) => {
             [user_id, item_id, procedure, quantity]
         );
 
-        return res.json({ success: true, message: "Item borrowed successfully!" });
+        return res.json({
+            success: true,
+            message: "Item borrowed successfully!"
+        });
 
     } catch (err) {
-        console.error(err);
-        res.json({ success: false, message: "Server error" });
+        console.error("BORROW ERROR:", err);
+        return res.json({
+            success: false,
+            message: "Server error",
+            error: err.message
+        });
     }
 });
 // ========================
