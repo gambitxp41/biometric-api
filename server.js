@@ -45,66 +45,47 @@ app.post("/borrow-item", async (req, res) => {
     try {
         let { user_id, item_id, quantity, procedure } = req.body;
 
-        // FORCE NUMBER (VERY IMPORTANT)
+        console.log("BODY:", req.body); // 🔥 DEBUG
+
         quantity = parseInt(quantity);
 
         if (!user_id || !item_id || !quantity || !procedure) {
             return res.json({
                 success: false,
-                message: "Missing fields"
+                message: "Missing fields",
+                debug: { user_id, item_id, quantity, procedure }
             });
         }
 
-        if (quantity <= 0) {
-            return res.json({
-                success: false,
-                message: "Invalid quantity"
-            });
-        }
-
-        // Check stock
         const [inv] = await db.query(
             "SELECT quantity FROM inventory WHERE id = ?",
             [item_id]
         );
 
         if (!inv.length) {
-            return res.json({
-                success: false,
-                message: "Item not found"
-            });
+            return res.json({ success: false, message: "Item not found" });
         }
 
-        const available = parseInt(inv[0].quantity);
-
-        if (available < quantity) {
-            return res.json({
-                success: false,
-                message: "Not enough stock!"
-            });
+        if (inv[0].quantity < quantity) {
+            return res.json({ success: false, message: "Not enough stock" });
         }
 
-        // Deduct stock
         await db.query(
             "UPDATE inventory SET quantity = quantity - ? WHERE id = ?",
             [quantity, item_id]
         );
 
-        // Insert transaction
         await db.query(
-            `INSERT INTO transactions (user_id, item_id, procedure, quantity, status)
+            `INSERT INTO transactions (user_id, item_id, \`procedure\`, quantity, status)
              VALUES (?, ?, ?, ?, 'inuse')`,
             [user_id, item_id, procedure, quantity]
         );
 
-        return res.json({
-            success: true,
-            message: "Item borrowed successfully!"
-        });
+        res.json({ success: true, message: "Item borrowed successfully!" });
 
     } catch (err) {
         console.error("BORROW ERROR:", err);
-        return res.json({
+        res.json({
             success: false,
             message: "Server error",
             error: err.message
