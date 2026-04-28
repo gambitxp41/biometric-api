@@ -839,31 +839,7 @@ app.get("/toggle-approval", async (req, res) => {
     }
 });
 
-// ========================
-// TRANSACTIONS (RESTORED)
-// ========================
-app.get("/transactions", async (req, res) => {
-    try {
-        const [rows] = await db.query(`
-            SELECT 
-                t.id,
-                i.name AS item_name,
-                u.username,
-                t.procedure,
-                t.status,
-                t.borrow_time
-            FROM transactions t
-            LEFT JOIN inventory i ON t.item_id = i.id
-            LEFT JOIN users u ON t.user_id = u.id
-            ORDER BY t.borrow_time DESC
-            LIMIT 10
-        `);
 
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 
 // ========================
 // RESERVATIONS (RESTORED)
