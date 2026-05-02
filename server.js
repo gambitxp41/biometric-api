@@ -99,6 +99,9 @@ app.post("/reserve-item", async (req, res) => {
     try {
         const { user_id, item_id, start_time, end_time } = req.body;
 
+        // =========================
+        // VALIDATION
+        // =========================
         if (!user_id || !item_id || !start_time || !end_time) {
             return res.json({
                 success: false,
@@ -106,8 +109,7 @@ app.post("/reserve-item", async (req, res) => {
             });
         }
 
-        const now = new Date().toISOString().slice(0,16);
-
+        // FIX: proper comparison (string-safe ISO)
         if (start_time >= end_time) {
             return res.json({
                 success: false,
@@ -115,20 +117,13 @@ app.post("/reserve-item", async (req, res) => {
             });
         }
 
-        if (start_time < now) {
-            return res.json({
-                success: false,
-                message: "Reservation start time cannot be in the past"
-            });
-        }
-
         // =========================
-        // CHECK CONFLICTS (IMPORTANT FIX)
+        // FIX: PROPER CONFLICT CHECK
         // =========================
         const [conflict] = await db.query(
             `SELECT * FROM reservations
              WHERE item_id = ?
-             AND status = 'approved'
+             AND status IN ('pending','approved')
              AND (
                 (start_time <= ? AND end_time >= ?)
                 OR (start_time <= ? AND end_time >= ?)
@@ -140,12 +135,12 @@ app.post("/reserve-item", async (req, res) => {
         if (conflict.length > 0) {
             return res.json({
                 success: false,
-                message: "Item already reserved during this time"
+                message: "Item already reserved in this time slot"
             });
         }
 
         // =========================
-        // INSERT RESERVATION
+        // INSERT
         // =========================
         await db.query(
             `INSERT INTO reservations
@@ -160,7 +155,7 @@ app.post("/reserve-item", async (req, res) => {
         });
 
     } catch (err) {
-        console.error(err);
+        console.error("RESERVATION ERROR:", err);
         res.json({
             success: false,
             message: "Server error"
