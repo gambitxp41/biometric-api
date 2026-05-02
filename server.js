@@ -99,17 +99,72 @@ app.post("/reserve-item", async (req, res) => {
     try {
         const { user_id, item_id, start_time, end_time } = req.body;
 
+        if (!user_id || !item_id || !start_time || !end_time) {
+            return res.json({
+                success: false,
+                message: "Missing fields"
+            });
+        }
+
+        const now = new Date().toISOString().slice(0,16);
+
+        if (start_time >= end_time) {
+            return res.json({
+                success: false,
+                message: "End time must be after start time"
+            });
+        }
+
+        if (start_time < now) {
+            return res.json({
+                success: false,
+                message: "Reservation start time cannot be in the past"
+            });
+        }
+
+        // =========================
+        // CHECK CONFLICTS (IMPORTANT FIX)
+        // =========================
+        const [conflict] = await db.query(
+            `SELECT * FROM reservations
+             WHERE item_id = ?
+             AND status = 'approved'
+             AND (
+                (start_time <= ? AND end_time >= ?)
+                OR (start_time <= ? AND end_time >= ?)
+                OR (start_time >= ? AND end_time <= ?)
+             )`,
+            [item_id, start_time, start_time, end_time, end_time, start_time, end_time]
+        );
+
+        if (conflict.length > 0) {
+            return res.json({
+                success: false,
+                message: "Item already reserved during this time"
+            });
+        }
+
+        // =========================
+        // INSERT RESERVATION
+        // =========================
         await db.query(
-            `INSERT INTO reservations (user_id, item_id, start_time, end_time, status)
-             VALUES (?, ?, ?, ?, 'pending')`,
+            `INSERT INTO reservations
+            (user_id, item_id, start_time, end_time, status)
+            VALUES (?, ?, ?, ?, 'pending')`,
             [user_id, item_id, start_time, end_time]
         );
 
-        res.json({ success: true, message: "Reservation submitted successfully!" });
+        return res.json({
+            success: true,
+            message: "Reservation submitted successfully!"
+        });
 
     } catch (err) {
         console.error(err);
-        res.json({ success: false, message: "Server error" });
+        res.json({
+            success: false,
+            message: "Server error"
+        });
     }
 });
 // ========================
