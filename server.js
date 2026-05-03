@@ -93,6 +93,50 @@ app.post("/borrow-item", async (req, res) => {
     }
 });
 // ========================
+//return reservations
+// ========================
+app.post("/return-reservation", async (req, res) => {
+    try {
+        const { reservation_id } = req.body;
+
+        if (!reservation_id) {
+            return res.json({
+                success: false,
+                message: "Missing reservation_id"
+            });
+        }
+
+        const [rows] = await db.query(
+            "SELECT * FROM reservations WHERE id=?",
+            [reservation_id]
+        );
+
+        if (!rows.length) {
+            return res.json({
+                success: false,
+                message: "Reservation not found"
+            });
+        }
+
+        await db.query(
+            "UPDATE reservations SET status='returned' WHERE id=?",
+            [reservation_id]
+        );
+
+        res.json({
+            success: true,
+            message: "Reservation returned successfully!"
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.json({
+            success: false,
+            message: "Server error"
+        });
+    }
+});
+// ========================
 //reserve items
 // ========================
 app.post("/reserve-item", async (req, res) => {
