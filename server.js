@@ -168,12 +168,23 @@ app.post("/reserve-item", async (req, res) => {
 app.get("/get-reservations", async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT r.*, s.username, i.name AS item_name, i.photo AS item_photo 
+            SELECT 
+                r.id,
+                r.user_id,
+                r.item_id,
+                r.start_time,
+                r.end_time,
+                r.status,
+                u.username,
+                COALESCE(i.name, 'UNKNOWN ITEM') AS item_name,
+                i.photo AS item_photo
             FROM reservations r
-            LEFT JOIN users s ON r.user_id = s.id
-            LEFT JOIN items i ON r.item_id = i.id
+            LEFT JOIN users u ON r.user_id = u.id
+            LEFT JOIN inventory i ON r.item_id = i.id
             ORDER BY r.start_time DESC
         `);
+
+        console.log("RESERVATIONS ROWS:", rows); // 🔥 DEBUG
 
         res.json({
             success: true,
@@ -181,8 +192,11 @@ app.get("/get-reservations", async (req, res) => {
         });
 
     } catch (err) {
-        console.error(err);
-        res.json({ success: false, message: "Server error" });
+        console.error("ERROR:", err);
+        res.json({
+            success: false,
+            message: err.message
+        });
     }
 });
 
