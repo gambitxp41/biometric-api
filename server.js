@@ -162,6 +162,91 @@ app.post("/reserve-item", async (req, res) => {
         });
     }
 });
+// ==========================
+// GET ALL RESERVATIONS
+// ==========================
+app.get("/get-reservations", async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT r.*, s.username, i.name AS item_name, i.photo AS item_photo 
+            FROM reservations r
+            LEFT JOIN users s ON r.user_id = s.id
+            LEFT JOIN items i ON r.item_id = i.id
+            ORDER BY r.start_time DESC
+        `);
+
+        res.json({
+            success: true,
+            data: rows
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.json({ success: false, message: "Server error" });
+    }
+});
+
+
+// ==========================
+// APPROVE RESERVATION
+// ==========================
+app.post("/approve-reservation", async (req, res) => {
+    try {
+        const { reservation_id } = req.body;
+
+        if (!reservation_id) {
+            return res.json({
+                success: false,
+                message: "Missing reservation_id"
+            });
+        }
+
+        await db.query(
+            "UPDATE reservations SET status = 'approved' WHERE id = ?",
+            [reservation_id]
+        );
+
+        res.json({
+            success: true,
+            message: "Reservation approved"
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.json({ success: false, message: "Server error" });
+    }
+});
+
+
+// ==========================
+// DENY RESERVATION
+// ==========================
+app.post("/deny-reservation", async (req, res) => {
+    try {
+        const { reservation_id } = req.body;
+
+        if (!reservation_id) {
+            return res.json({
+                success: false,
+                message: "Missing reservation_id"
+            });
+        }
+
+        await db.query(
+            "UPDATE reservations SET status = 'denied' WHERE id = ?",
+            [reservation_id]
+        );
+
+        res.json({
+            success: true,
+            message: "Reservation denied"
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.json({ success: false, message: "Server error" });
+    }
+});
 // ========================
 //RETURN ITEMS
 // ========================
