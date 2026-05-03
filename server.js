@@ -834,17 +834,47 @@ app.post("/login-biometric", async (req, res) => {
 // ========================
 app.post("/update-bio", async (req, res) => {
     try {
-        const { id, biometric_id } = req.body;
+        const { id, biometric_id, password } = req.body;
 
         console.log("DEBUG BODY:", req.body);
 
-        if (!id || !biometric_id) {
+        // ========================
+        // VALIDATION
+        // ========================
+        if (!id || !biometric_id || !password) {
             return res.status(400).json({
                 success: false,
-                message: "Missing id or biometric_id"
+                message: "Missing id, biometric_id, or password"
             });
         }
 
+        // ========================
+        // CHECK USER PASSWORD
+        // ========================
+        const [users] = await db.query(
+            "SELECT password FROM users WHERE id=?",
+            [id]
+        );
+
+        if (!users.length) {
+            return res.json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        const dbPassword = users[0].password;
+
+        if (dbPassword !== password) {
+            return res.json({
+                success: false,
+                message: "Incorrect password"
+            });
+        }
+
+        // ========================
+        // UPDATE BIOMETRIC
+        // ========================
         const [result] = await db.query(
             "UPDATE users SET biometric_id=? WHERE id=?",
             [biometric_id, id]
@@ -854,7 +884,7 @@ app.post("/update-bio", async (req, res) => {
 
         res.json({
             success: true,
-            message: "Biometric saved",
+            message: "Biometric saved successfully",
             affectedRows: result.affectedRows
         });
 
@@ -865,7 +895,7 @@ app.post("/update-bio", async (req, res) => {
             error: err.message
         });
     }
-});;
+});
 // ========================
 // SIGNUP
 // ========================
