@@ -101,19 +101,19 @@ app.post("/return-reservation", async (req, res) => {
         const { id } = req.body;
 
         if (!id) {
-            return res.json({
+            return res.status(400).json({
                 success: false,
                 message: "Missing id"
             });
         }
 
         const [rows] = await db.query(
-            "SELECT * FROM reservations WHERE id=?",
+            "SELECT id FROM reservations WHERE id=?",
             [id]
         );
 
-        if (rows.length === 0) {
-            return res.json({
+        if (!rows.length) {
+            return res.status(404).json({
                 success: false,
                 message: "Reservation not found"
             });
@@ -124,20 +124,19 @@ app.post("/return-reservation", async (req, res) => {
             [id]
         );
 
-        res.json({
+        return res.json({
             success: true,
             message: "Reservation returned successfully!"
         });
 
-} catch (err) {
-    console.error("RETURN RESERVATION ERROR:", err);
-
-    return res.status(500).json({
-        success: false,
-        message: err.message,
-        stack: err.stack
-    });
-}
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+});
 // ========================
 //reserve items
 // ========================
