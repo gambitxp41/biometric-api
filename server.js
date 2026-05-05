@@ -98,6 +98,7 @@ app.post("/borrow-item", async (req, res) => {
 // ========================
 app.post("/return-reservation", async (req, res) => {
     try {
+           console.log("API RECEIVED:", req.body);
         const { id } = req.body;
 
         if (!id) {
