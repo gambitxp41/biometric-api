@@ -97,30 +97,30 @@ app.post("/borrow-item", async (req, res) => {
 //return reservations
 // ========================
 app.post("/return-reservation", async (req, res) => {
-    try { 
-        const id = req.body.id || req.body.id;
+    try {
+        const { id } = req.body;
 
-        if (!id) { 
-            return res.json({ 
-                success: false, 
-                message: "Missing reservation_id" 
-            }); 
+        if (!id) {
+            return res.json({
+                success: false,
+                message: "Missing reservation_id"
+            });
         }
 
         const [rows] = await db.query(
             "SELECT * FROM reservations WHERE id=?",
             [id]
-        ); 
+        );
 
-        if (!rows.length) { 
-            return res.json({ 
-                success: false, 
-                message: "Reservation not found" 
-            }); 
-        } 
+        if (!rows.length) {
+            return res.json({
+                success: false,
+                message: "Reservation not found"
+            });
+        }
 
         await db.query(
-            "UPDATE reservations SET status='returned' WHERE id=?", 
+            "UPDATE reservations SET status='returned' WHERE id=?",
             [id]
         );
 
@@ -129,11 +129,11 @@ app.post("/return-reservation", async (req, res) => {
             message: "Reservation returned successfully!"
         });
 
-    } catch (err) { 
-        console.error(err); 
-        res.json({ 
-            success: false, 
-            message: "Server error" 
+    } catch (err) {
+        console.error(err);
+        res.json({
+            success: false,
+            message: "Server error"
         });
     }
 });
