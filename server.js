@@ -129,13 +129,17 @@ app.post("/return-reservation", async (req, res) => {
             message: "Reservation returned successfully!"
         });
 
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({
-            success: false,
-            message: "Server error"
-        });
-    }
+catch (err) {
+    console.error("❌ RETURN RESERVATION ERROR:", err);
+    console.error("❌ SQL ERROR:", err.sqlMessage);
+    console.error("❌ STACK:", err.stack);
+
+    return res.json({
+        success: false,
+        message: err.message,
+        sql: err.sqlMessage || null
+    });
+}
 });
 // ========================
 //reserve items
