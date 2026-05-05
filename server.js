@@ -26,6 +26,7 @@ app.use(cors());
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
 
+
 // ========================
 // HEALTH
 // ========================
@@ -128,14 +129,15 @@ app.post("/return-reservation", async (req, res) => {
             message: "Reservation returned successfully!"
         });
 
-    } catch (err) {
-        console.error(err);
-        res.json({
-            success: false,
-            message: "Server error"
-        });
-    }
-});
+} catch (err) {
+    console.error("RETURN RESERVATION ERROR:", err);
+
+    return res.status(500).json({
+        success: false,
+        message: err.message,
+        stack: err.stack
+    });
+}
 // ========================
 //reserve items
 // ========================
