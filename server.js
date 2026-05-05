@@ -102,7 +102,7 @@ app.post("/return-reservation", async (req, res) => {
         if (!id) {
             return res.json({
                 success: false,
-                message: "Missing reservation_id"
+                message: "Missing id"
             });
         }
 
@@ -111,7 +111,7 @@ app.post("/return-reservation", async (req, res) => {
             [id]
         );
 
-        if (!rows.length) {
+        if (rows.length === 0) {
             return res.json({
                 success: false,
                 message: "Reservation not found"
