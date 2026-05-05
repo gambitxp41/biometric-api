@@ -98,7 +98,8 @@ app.post("/borrow-item", async (req, res) => {
 // ========================
 app.post("/return-reservation", async (req, res) => {
     try {
-           console.log("API RECEIVED:", req.body);
+        console.log("API RECEIVED:", req.body);
+
         const { reservation_id } = req.body;
 
         if (!reservation_id) {
@@ -121,7 +122,9 @@ app.post("/return-reservation", async (req, res) => {
         }
 
         await db.query(
-            "UPDATE reservations SET status='returned' WHERE id=?",
+            `UPDATE reservations 
+             SET status='returned', returned_date = NOW() 
+             WHERE id=?`,
             [reservation_id]
         );
 
