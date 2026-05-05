@@ -98,18 +98,45 @@ app.post("/borrow-item", async (req, res) => {
 // ========================
 app.post("/return-reservation", async (req, res) => {
     try { 
-        const { id } = req.body; 
-        if (!id) { return res.json({ success: false, message: "Missing reservation_id" }); }
-        const [rows] = 
-            await db.query( "SELECT * FROM reservations WHERE id=?", [id] ); 
-        if (!rows.length) { return res.json({ success: false, message: "Reservation not found" }); } 
-        await db.query( "UPDATE reservations SET status='returned' WHERE id=?", [id] );
-        res.json({ success: true, message: "Reservation returned successfully!" }); } 
-    catch (err) { console.error(err); 
-                 res.json({ success: false,
-                           message: "Server error" });
-                }
-})
+        const id = req.body.id || req.body.reservation_id;
+
+        if (!id) { 
+            return res.json({ 
+                success: false, 
+                message: "Missing reservation_id" 
+            }); 
+        }
+
+        const [rows] = await db.query(
+            "SELECT * FROM reservations WHERE id=?",
+            [id]
+        ); 
+
+        if (!rows.length) { 
+            return res.json({ 
+                success: false, 
+                message: "Reservation not found" 
+            }); 
+        } 
+
+        await db.query(
+            "UPDATE reservations SET status='returned' WHERE id=?", 
+            [id]
+        );
+
+        res.json({
+            success: true,
+            message: "Reservation returned successfully!"
+        });
+
+    } catch (err) { 
+        console.error(err); 
+        res.json({ 
+            success: false, 
+            message: "Server error" 
+        });
+    }
+});
 // ========================
 //reserve items
 // ========================
