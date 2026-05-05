@@ -97,50 +97,19 @@ app.post("/borrow-item", async (req, res) => {
 //return reservations
 // ========================
 app.post("/return-reservation", async (req, res) => {
-    try {
-        const { id } = req.body;
-
-        if (!id) {
-            return res.status(400).json({
-                success: false,
-                message: "Missing id"
-            });
-        }
-
-        const [rows] = await db.query(
-            "SELECT id FROM reservations WHERE id=?",
-            [id]
-        );
-
-        if (!rows.length) {
-            return res.status(404).json({
-                success: false,
-                message: "Reservation not found"
-            });
-        }
-
-        await db.query(
-            "UPDATE reservations SET status='returned' WHERE id=?",
-            [id]
-        );
-
-        return res.json({
-            success: true,
-            message: "Reservation returned successfully!"
-        });
-
-catch (err) {
-    console.error("❌ RETURN RESERVATION ERROR:", err);
-    console.error("❌ SQL ERROR:", err.sqlMessage);
-    console.error("❌ STACK:", err.stack);
-
-    return res.json({
-        success: false,
-        message: err.message,
-        sql: err.sqlMessage || null
-    });
-}
-});
+    try { 
+        const { id } = req.body; 
+        if (!id) { return res.json({ success: false, message: "Missing reservation_id" }); }
+        const [rows] = 
+            await db.query( "SELECT * FROM reservations WHERE id=?", [id] ); 
+        if (!rows.length) { return res.json({ success: false, message: "Reservation not found" }); } 
+        await db.query( "UPDATE reservations SET status='returned' WHERE id=?", [id] );
+        res.json({ success: true, message: "Reservation returned successfully!" }); } 
+    catch (err) { console.error(err); 
+                 res.json({ success: false,
+                           message: "Server error" });
+                }
+})
 // ========================
 //reserve items
 // ========================
