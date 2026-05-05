@@ -98,7 +98,7 @@ app.post("/borrow-item", async (req, res) => {
 // ========================
 app.post("/return-reservation", async (req, res) => {
     try { 
-        const id = req.body.id || req.body.reservation_id;
+        const id = req.body.id || req.body.id;
 
         if (!id) { 
             return res.json({ 
