@@ -248,25 +248,25 @@ app.get("/get-reservations", async (req, res) => {
 // ==========================
 // APPROVE RESERVATION
 // ==========================
-app.post("/approve-reservation", async (req, res) => {
-    try {
-const { id } = req.body;
-
-if (!id) {
-    return res.json({
-        success: false,
-        message: "Missing id"
-    });
-}
-
-await db.query(
-    "UPDATE reservations SET status = 'approved' WHERE id = ?",
-    [id]
-);
-
-res.json({
-    success: true,
-    message: "Reservation approved"
+app.post("/approve-reservation", async (req, res) => { 
+    try { 
+        const { id } = req.body;
+        
+        if (!id)
+        { return res.json({
+            success: false,
+            message: "Missing reservation_id"
+        });
+        }
+        await db.query(
+            "UPDATE reservations SET status = 'approved' WHERE id = ?", 
+            [id] ); res.json({ 
+            success: true, message: "Reservation approved"
+        });
+    } catch (err) { console.error(err); 
+                   res.json({ success: false,
+                             message: "Server error" });
+                  } 
 });
 
 
