@@ -99,7 +99,7 @@ app.post("/return-reservation", async (req, res) => {
     try {
         const { reservation_id } = req.body;
 
-        if (!reservation_id) {
+        if (!id) {
             return res.json({
                 success: false,
                 message: "Missing reservation_id"
@@ -108,7 +108,7 @@ app.post("/return-reservation", async (req, res) => {
 
         const [rows] = await db.query(
             "SELECT * FROM reservations WHERE id=?",
-            [reservation_id]
+            [id]
         );
 
         if (!rows.length) {
@@ -120,7 +120,7 @@ app.post("/return-reservation", async (req, res) => {
 
         await db.query(
             "UPDATE reservations SET status='returned' WHERE id=?",
-            [reservation_id]
+            [id]
         );
 
         res.json({
@@ -275,9 +275,9 @@ app.post("/approve-reservation", async (req, res) => {
 // ==========================
 app.post("/deny-reservation", async (req, res) => {
     try {
-        const { reservation_id } = req.body;
+        const { id } = req.body;
 
-        if (!reservation_id) {
+        if (!id) {
             return res.json({
                 success: false,
                 message: "Missing reservation_id"
@@ -286,7 +286,7 @@ app.post("/deny-reservation", async (req, res) => {
 
         await db.query(
             "UPDATE reservations SET status = 'denied' WHERE id = ?",
-            [reservation_id]
+            [id]
         );
 
         res.json({
