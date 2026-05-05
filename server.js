@@ -99,9 +99,9 @@ app.post("/borrow-item", async (req, res) => {
 app.post("/return-reservation", async (req, res) => {
     try {
            console.log("API RECEIVED:", req.body);
-        const { id } = req.body;
+        const { reservation_id } = req.body;
 
-        if (!id) {
+        if (!reservation_id) {
             return res.json({
                 success: false,
                 message: "Missing reservation_id"
@@ -110,7 +110,7 @@ app.post("/return-reservation", async (req, res) => {
 
         const [rows] = await db.query(
             "SELECT * FROM reservations WHERE id=?",
-            [id]
+            [reservation_id]
         );
 
         if (!rows.length) {
@@ -122,7 +122,7 @@ app.post("/return-reservation", async (req, res) => {
 
         await db.query(
             "UPDATE reservations SET status='returned' WHERE id=?",
-            [id]
+            [reservation_id]
         );
 
         res.json({
