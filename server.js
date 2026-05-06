@@ -921,7 +921,8 @@ app.post("/signup", async (req, res) => {
             profile_photo
         } = req.body;
 
-        // check duplicate
+        console.log("PROFILE PHOTO RECEIVED:", profile_photo ? "YES" : "NO");
+
         const [existing] = await db.query(
             "SELECT * FROM users WHERE username=?",
             [username]
@@ -931,18 +932,13 @@ app.post("/signup", async (req, res) => {
             return res.json({ success: false, message: "Username exists" });
         }
 
-        // ========================
-        // CLOUDINARY UPLOAD (ONLY IF PHOTO EXISTS)
-        // ========================
         let imageUrl = null;
 
-        if (profile_photo) {
+        // 🔥 IMPORTANT FIX
+        if (profile_photo && profile_photo.length > 100) {
             imageUrl = await uploadToCloudinary(profile_photo);
         }
 
-        // ========================
-        // INSERT USER (NOW WITH ALL DATA)
-        // ========================
         await db.query(
             `INSERT INTO users 
             (username, password, role, subjects, course, year_level, profile_photo, approvals)
