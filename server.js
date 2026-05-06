@@ -855,9 +855,21 @@ app.get("/report-transactions", async (req, res) => {
 // ========================
 // reports reservations
 // ========================
+// ========================
+// REPORT - RESERVATIONS
+// ========================
 app.get("/report-reservations", async (req, res) => {
     try {
-        const { search, month, year, date } = req.query;
+        let { search, month, year, date } = req.query;
+
+        // ========================
+        // FIX MONTH FORMAT (YYYY-MM → year + month)
+        // ========================
+        if (month && month.includes("-")) {
+            const p = month.split("-");
+            year = p[0];
+            month = p[1];
+        }
 
         let sql = `
             SELECT 
@@ -873,7 +885,7 @@ app.get("/report-reservations", async (req, res) => {
         let params = [];
 
         // ========================
-        // SEARCH (item name or username)
+        // SEARCH (item or username)
         // ========================
         if (search) {
             sql += ` AND (i.name LIKE ? OR u.username LIKE ?)`;
@@ -881,7 +893,7 @@ app.get("/report-reservations", async (req, res) => {
         }
 
         // ========================
-        // FILTER BY YEAR
+        // FILTER YEAR
         // ========================
         if (year) {
             sql += ` AND YEAR(r.start_time) = ?`;
@@ -889,7 +901,7 @@ app.get("/report-reservations", async (req, res) => {
         }
 
         // ========================
-        // FILTER BY MONTH
+        // FILTER MONTH (01–12)
         // ========================
         if (month) {
             sql += ` AND MONTH(r.start_time) = ?`;
@@ -897,7 +909,7 @@ app.get("/report-reservations", async (req, res) => {
         }
 
         // ========================
-        // FILTER BY SPECIFIC DATE
+        // FILTER EXACT DATE
         // ========================
         if (date) {
             sql += ` AND DATE(r.start_time) = ?`;
@@ -907,7 +919,6 @@ app.get("/report-reservations", async (req, res) => {
         sql += ` ORDER BY r.start_time DESC`;
 
         const [rows] = await db.query(sql, params);
-
         res.json(rows);
 
     } catch (err) {
