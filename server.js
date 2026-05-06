@@ -910,23 +910,63 @@ app.post("/update-bio", async (req, res) => {
 // SIGNUP
 // ========================
 app.post("/signup", async (req, res) => {
-    const { username, password, role } = req.body;
+    try {
+        const {
+            username,
+            password,
+            role,
+            subjects,
+            course,
+            year_level,
+            profile_photo
+        } = req.body;
 
-    const [existing] = await db.query(
-        "SELECT * FROM users WHERE username=?",
-        [username]
-    );
+        // check duplicate
+        const [existing] = await db.query(
+            "SELECT * FROM users WHERE username=?",
+            [username]
+        );
 
-    if (existing.length > 0) {
-        return res.json({ success: false, message: "Username exists" });
+        if (existing.length > 0) {
+            return res.json({ success: false, message: "Username exists" });
+        }
+
+        // ========================
+        // CLOUDINARY UPLOAD (ONLY IF PHOTO EXISTS)
+        // ========================
+        let imageUrl = null;
+
+        if (profile_photo) {
+            imageUrl = await uploadToCloudinary(profile_photo);
+        }
+
+        // ========================
+        // INSERT USER (NOW WITH ALL DATA)
+        // ========================
+        await db.query(
+            `INSERT INTO users 
+            (username, password, role, subjects, course, year_level, profile_photo, approvals)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
+            [
+                username,
+                password,
+                role || "student",
+                subjects || null,
+                course || null,
+                year_level || null,
+                imageUrl
+            ]
+        );
+
+        return res.json({ success: true });
+
+    } catch (err) {
+        console.error("SIGNUP ERROR:", err);
+        return res.json({
+            success: false,
+            message: err.message
+        });
     }
-
-    await db.query(
-        "INSERT INTO users (username,password,role,approvals) VALUES (?,?,?, 'pending')",
-        [username, password, role || "student"]
-    );
-
-    res.json({ success: true });
 });
 
 // ========================
