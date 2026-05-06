@@ -827,9 +827,12 @@ app.get("/report-transactions", async (req, res) => {
 // ========================
 // REPORT RESERVATIONS (WITH FILTERS)
 // ========================
+// ========================
+// reports reservations
+// ========================
 app.get("/report-reservations", async (req, res) => {
     try {
-        const { search, date, month, year } = req.query;
+        const { search, month, year, date } = req.query;
 
         let sql = `
             SELECT 
@@ -845,54 +848,45 @@ app.get("/report-reservations", async (req, res) => {
         let params = [];
 
         // ========================
-        // SEARCH FILTER (user, item, reservation id)
+        // SEARCH (item name or username)
         // ========================
         if (search) {
-            sql += `
-                AND (
-                    u.username LIKE ?
-                    OR i.name LIKE ?
-                    OR r.id LIKE ?
-                )
-            `;
-            params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+            sql += ` AND (i.name LIKE ? OR u.username LIKE ?)`;
+            params.push(`%${search}%`, `%${search}%`);
         }
 
         // ========================
-        // EXACT DATE FILTER
-        // ========================
-        if (date) {
-            sql += " AND DATE(r.start_time) = ?";
-            params.push(date);
-        }
-
-        // ========================
-        // MONTH FILTER (YYYY-MM)
-        // ========================
-        if (month) {
-            sql += " AND DATE_FORMAT(r.start_time, '%Y-%m') = ?";
-            params.push(month);
-        }
-
-        // ========================
-        // YEAR FILTER
+        // FILTER BY YEAR
         // ========================
         if (year) {
-            sql += " AND YEAR(r.start_time) = ?";
+            sql += ` AND YEAR(r.start_time) = ?`;
             params.push(year);
         }
 
         // ========================
-        // ORDER
+        // FILTER BY MONTH
         // ========================
-        sql += " ORDER BY r.start_time DESC";
+        if (month) {
+            sql += ` AND MONTH(r.start_time) = ?`;
+            params.push(month);
+        }
+
+        // ========================
+        // FILTER BY SPECIFIC DATE
+        // ========================
+        if (date) {
+            sql += ` AND DATE(r.start_time) = ?`;
+            params.push(date);
+        }
+
+        sql += ` ORDER BY r.start_time DESC`;
 
         const [rows] = await db.query(sql, params);
 
         res.json(rows);
 
     } catch (err) {
-        console.log(err);
+        console.error("Error:", err);
         res.status(500).json({ error: err.message });
     }
 });
