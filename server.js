@@ -921,7 +921,7 @@ app.post("/signup", async (req, res) => {
             profile_photo
         } = req.body;
 
-        console.log("PROFILE PHOTO RECEIVED:", profile_photo ? "YES" : "NO");
+        console.log("SIGNUP PHOTO:", profile_photo ? "YES" : "NO");
 
         const [existing] = await db.query(
             "SELECT * FROM users WHERE username=?",
@@ -934,9 +934,14 @@ app.post("/signup", async (req, res) => {
 
         let imageUrl = null;
 
-        // 🔥 IMPORTANT FIX
+        // 🔥 IMPORTANT FIX (same logic as update-user)
         if (profile_photo && profile_photo.length > 100) {
-            imageUrl = await uploadToCloudinary(profile_photo);
+            try {
+                imageUrl = await uploadToCloudinary(profile_photo);
+            } catch (uploadErr) {
+                console.log("UPLOAD ERROR:", uploadErr.message);
+                imageUrl = null;
+            }
         }
 
         await db.query(
@@ -954,17 +959,13 @@ app.post("/signup", async (req, res) => {
             ]
         );
 
-        return res.json({ success: true });
+        res.json({ success: true });
 
     } catch (err) {
         console.error("SIGNUP ERROR:", err);
-        return res.json({
-            success: false,
-            message: err.message
-        });
+        res.json({ success: false, message: err.message });
     }
 });
-
 // ========================
 // UPDATE USER (CLOUDINARY)
 // ========================
