@@ -942,8 +942,20 @@ app.get("/fingerprints", async (req, res) => {
 // ========================
 // BIOMETRIC LOGIN
 // ========================
+// ========================
+// BIOMETRIC LOGIN
+// ========================
 app.post("/login-biometric", async (req, res) => {
-    const { finger_id } = req.body;
+
+    // ACCEPT BOTH FIELDS
+    const finger_id = req.body.finger_id || req.body.id;
+
+    if (!finger_id) {
+        return res.json({
+            success: false,
+            message: "Missing field: finger_id or id"
+        });
+    }
 
     try {
         const [rows] = await db.query(
@@ -952,13 +964,22 @@ app.post("/login-biometric", async (req, res) => {
         );
 
         if (!rows.length) {
-            return res.json({ success: false, message: "User not found" });
+            return res.json({
+                success: false,
+                message: "User not found"
+            });
         }
 
-        res.json({ success: true, user: rows[0] });
+        return res.json({
+            success: true,
+            user: rows[0]
+        });
 
     } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
+        return res.status(500).json({
+            success: false,
+            error: err.message
+        });
     }
 });
 // ========================
