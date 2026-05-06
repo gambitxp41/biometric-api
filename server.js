@@ -932,17 +932,23 @@ app.post("/signup", async (req, res) => {
             return res.json({ success: false, message: "Username exists" });
         }
 
-        let imageUrl = null;
+let imageUrl = null;
 
-        // 🔥 IMPORTANT FIX (same logic as update-user)
-        if (profile_photo && profile_photo.length > 100) {
-            try {
-                imageUrl = await uploadToCloudinary(profile_photo);
-            } catch (uploadErr) {
-                console.log("UPLOAD ERROR:", uploadErr.message);
-                imageUrl = null;
-            }
+if (profile_photo) {
+    try {
+        let imageData = profile_photo;
+
+        if (!profile_photo.startsWith("data:")) {
+            imageData = "data:image/jpeg;base64," + profile_photo;
         }
+
+        imageUrl = await uploadToCloudinary(imageData);
+
+    } catch (err) {
+        console.log("UPLOAD ERROR:", err.message);
+        imageUrl = null;
+    }
+}
 
         await db.query(
             `INSERT INTO users 
