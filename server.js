@@ -227,28 +227,64 @@ app.get("/get-reservations", async (req, res) => {
 // ==========================
 // APPROVE RESERVATION
 // ==========================
-app.post("/approve-reservation", async (req, res) => { 
-    try { 
+app.post("/approve-reservation", async (req, res) => {
+    try {
         const { id } = req.body;
-        
-        if (!id)
-        { return res.json({
-            success: false,
-            message: "Missing reservation_id"
-        });
+
+        // 1. Get reservation
+        const [reservation] = await db.query(
+            "SELECT * FROM reservations WHERE id = ?",
+            [id]
+        );
+
+        if (!reservation.length) {
+            return res.json({ success: false, message: "Not found" });
         }
+
+        const r = reservation[0];
+
+        // 2. Get item stock
+        const [item] = await db.query(
+            "SELECT quantity FROM inventory WHERE id = ?",
+            [r.item_id]
+        );
+
+        if (!item.length) {
+            return res.json({ success: false, message: "Item not found" });
+        }
+
+        const currentStock = item[0].quantity;
+
+        // 3. Check if enough stock
+        if (currentStock < r.quantity) {
+            return res.json({
+                success: false,
+                message: "Not enough stock to approve"
+            });
+        }
+
+        // 4. Deduct stock ONLY NOW (approve time)
         await db.query(
-            "UPDATE reservations SET status = 'approved' WHERE id = ?", 
-            [id] ); res.json({ 
-            success: true, message: "Reservation approved"
+            "UPDATE inventory SET quantity = quantity - ? WHERE id = ?",
+            [r.quantity, r.item_id]
+        );
+
+        // 5. Update reservation status
+        await db.query(
+            "UPDATE reservations SET status = 'approved' WHERE id = ?",
+            [id]
+        );
+
+        return res.json({
+            success: true,
+            message: "Reservation approved and stock deducted"
         });
-    } catch (err) { console.error(err); 
-                   res.json({ success: false,
-                             message: "Server error" });
-                  } 
+
+    } catch (err) {
+        console.error(err);
+        res.json({ success: false, message: "Server error" });
+    }
 });
-
-
 // ==========================
 // DENY RESERVATION
 // ==========================
