@@ -758,7 +758,7 @@ app.put("/inventory/photo/:id", async (req, res) => {
 // ========================
 app.get("/report-transactions", async (req, res) => {
     try {
-        const { search, date, month, year } = req.query;
+        const { t_search, t_date, t_month, t_year } = req.query;
 
         let sql = `
             SELECT 
@@ -777,7 +777,7 @@ app.get("/report-transactions", async (req, res) => {
         // ========================
         // SEARCH (username, item, id)
         // ========================
-        if (search) {
+        if (t_search) {
             sql += `
                 AND (
                     u.username LIKE ?
@@ -785,32 +785,32 @@ app.get("/report-transactions", async (req, res) => {
                     OR t.id LIKE ?
                 )
             `;
-            params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+            params.push(`%${t_search}%`, `%${t_search}%`, `%${t_search}%`);
         }
 
         // ========================
         // EXACT DATE
         // ========================
-        if (date) {
+        if (t_date) {
             sql += " AND DATE(t.borrow_time)=?";
-            params.push(date);
+            params.push(t_date);
         }
 
         // ========================
         // MONTH
         // format: YYYY-MM (important)
         // ========================
-        if (month) {
+        if (t_month) {
             sql += " AND DATE_FORMAT(t.borrow_time, '%Y-%m')=?";
-            params.push(month);
+            params.push(t_month);
         }
 
         // ========================
         // YEAR
         // ========================
-        if (year) {
+        if (t_year) {
             sql += " AND YEAR(t.borrow_time)=?";
-            params.push(year);
+            params.push(t_year);
         }
 
         sql += " ORDER BY t.borrow_time DESC";
