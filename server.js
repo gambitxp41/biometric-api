@@ -932,7 +932,6 @@ app.post("/signup", async (req, res) => {
 
         let imageUrl = null;
 
-        // 🔥 FIX: only upload if may image
         if (profile_photo) {
             imageUrl = await uploadToCloudinary(profile_photo);
         }
@@ -955,6 +954,7 @@ app.post("/signup", async (req, res) => {
         res.json({ success: true });
 
     } catch (err) {
+        console.log("SIGNUP ERROR:", err.message);
         res.json({ success: false, message: err.message });
     }
 });
