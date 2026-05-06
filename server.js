@@ -146,79 +146,24 @@ app.post("/return-reservation", async (req, res) => {
 // ========================
 app.post("/reserve-item", async (req, res) => {
     try {
-        const { user_id, item_id, start_time, end_time, quantity } = req.body;
+        const { user_id, item_id, quantity, start_time, end_time } = req.body;
 
-        // =========================
-        // VALIDATION
-        // =========================
-        if (!user_id || !item_id || !start_time || !end_time || !quantity) {
-            return res.json({
-                success: false,
-                message: "Missing fields"
-            });
+        if (!user_id || !item_id || !quantity || !start_time || !end_time) {
+            return res.json({ success: false, message: "Missing fields" });
         }
 
-        if (quantity <= 0) {
-            return res.json({
-                success: false,
-                message: "Invalid quantity"
-            });
-        }
-
-        if (start_time >= end_time) {
-            return res.json({
-                success: false,
-                message: "End time must be after start time"
-            });
-        }
-
-        // =========================
-        // CHECK INVENTORY STOCK
-        // =========================
+        // OPTIONAL: check available stock (for warning only)
         const [item] = await db.query(
             "SELECT quantity FROM inventory WHERE id = ?",
             [item_id]
         );
 
         if (!item.length) {
-            return res.json({
-                success: false,
-                message: "Item not found"
-            });
+            return res.json({ success: false, message: "Item not found" });
         }
 
-        if (item[0].quantity < quantity) {
-            return res.json({
-                success: false,
-                message: "Not enough stock available"
-            });
-        }
+        // ❌ DO NOT deduct stock here
 
-        // =========================
-        // CONFLICT CHECK (time overlap)
-        // =========================
-        const [conflict] = await db.query(
-            `SELECT * FROM reservations
-             WHERE item_id = ?
-             AND status IN ('pending','approved')
-             AND (
-                (start_time <= ? AND end_time >= ?)
-                OR (start_time <= ? AND end_time >= ?)
-                OR (start_time >= ? AND end_time <= ?)
-             )`,
-            [item_id, start_time, start_time, end_time, end_time, start_time, end_time]
-        );
-
-        if (conflict.length > 0) {
-            return res.json({
-                success: false,
-                message: "Item already reserved in this time slot"
-            });
-        }
-
-        // =========================
-        // INSERT RESERVATION
-        // =========================
         await db.query(
             `INSERT INTO reservations
             (user_id, item_id, quantity, start_time, end_time, status)
@@ -228,15 +173,12 @@ app.post("/reserve-item", async (req, res) => {
 
         return res.json({
             success: true,
-            message: "Reservation submitted successfully!"
+            message: "Reservation submitted!"
         });
 
     } catch (err) {
-        console.error("RESERVATION ERROR:", err);
-        res.json({
-            success: false,
-            message: "Server error"
-        });
+        console.error(err);
+        res.json({ success: false, message: "Server error" });
     }
 });
 // ==========================
