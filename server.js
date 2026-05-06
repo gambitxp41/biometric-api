@@ -214,6 +214,9 @@ app.post("/reserve-item", async (req, res) => {
 // ==========================
 // GET ALL RESERVATIONS
 // ==========================
+// ==========================
+// GET ALL RESERVATIONS
+// ==========================
 app.get("/get-reservations", async (req, res) => {
     try {
         const [rows] = await db.query(`
@@ -224,16 +227,21 @@ app.get("/get-reservations", async (req, res) => {
                 r.start_time,
                 r.end_time,
                 r.status,
+
                 u.username,
+
                 COALESCE(i.name, 'UNKNOWN ITEM') AS item_name,
-                i.photo AS item_photo
+                i.photo AS item_photo,
+
+                i.quantity AS item_quantity   -- ✅ ADD THIS
+
             FROM reservations r
             LEFT JOIN users u ON r.user_id = u.id
             LEFT JOIN inventory i ON r.item_id = i.id
             ORDER BY r.start_time DESC
         `);
 
-        console.log("RESERVATIONS ROWS:", rows); // 🔥 DEBUG
+        console.log("RESERVATIONS ROWS:", rows);
 
         res.json({
             success: true,
@@ -248,7 +256,6 @@ app.get("/get-reservations", async (req, res) => {
         });
     }
 });
-
 
 // ==========================
 // APPROVE RESERVATION
