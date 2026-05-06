@@ -915,6 +915,7 @@ app.post("/signup", async (req, res) => {
             username,
             password,
             role,
+            biometric_id,
             subjects,
             course,
             year_level,
@@ -930,31 +931,31 @@ app.post("/signup", async (req, res) => {
             return res.json({ success: false, message: "Username exists" });
         }
 
-        let imageUrl = null;
-
-        if (profile_photo) {
-            imageUrl = await uploadToCloudinary(profile_photo);
-        }
+        let imageUrl = profile_photo
+            ? await uploadToCloudinary(profile_photo)
+            : null;
 
         await db.query(
             `INSERT INTO users 
-            (username, password, role, biometric_id, profile_photo, subjects, course, year_level, approvals)
-            VALUES (?, ?, ?, NULL, ?, ?, ?, ?, 'pending')`,
+            (username, password, role, biometric_id, subjects, course, year_level, profile_photo, approvals)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 username,
                 password,
                 role || "student",
-                imageUrl,
+                biometric_id || null,
                 subjects || null,
                 course || null,
-                year_level || null
+                year_level || null,
+                imageUrl,
+                "pending"   // 👈 THIS IS THE VALUE
             ]
         );
 
         res.json({ success: true });
 
     } catch (err) {
-        console.log("SIGNUP ERROR:", err.message);
+        console.log(err);
         res.json({ success: false, message: err.message });
     }
 });
