@@ -387,34 +387,40 @@ app.post("/get-user-by-id", async (req, res) => {
 //api login
 // ========================
 app.post("/api-login", async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, id } = req.body;
 
-    if (!username || !password) {
-        return res.json({ success: false, message: "Missing fields" });
-    }
-
-    try {
-        const [rows] = await db.query(
-            "SELECT * FROM users WHERE username=? AND password=?",
-            [username, password]
-        );
+    // ALLOW ID LOGIN (BIOMETRIC)
+    if (id) {
+        const [rows] = await db.query("SELECT * FROM users WHERE id=?", [id]);
 
         if (!rows.length) {
-            return res.json({ success: false, message: "Invalid credentials" });
+            return res.json({ success: false, message: "User not found" });
         }
 
         const user = rows[0];
 
-        // Don't allow unapproved users
         if (user.approvals !== "approved") {
             return res.json({ success: false, message: "Account not approved" });
         }
 
         return res.json({ success: true, user });
-
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
     }
+
+    // REQUIRE username + password kung manual login
+    if (!username || !password) {
+        return res.json({ success: false, message: "Missing fields" });
+    }
+
+    const [rows2] = await db.query(
+        "SELECT * FROM users WHERE username=? AND password=?",
+        [username, password]
+    );
+
+    if (!rows2.length) {
+        return res.json({ success: false, message: "Invalid credentials" });
+    }
+
+    return res.json({ success: true, user: rows2[0] });
 });
 // ========================
 // CLOUDINARY UPLOAD
