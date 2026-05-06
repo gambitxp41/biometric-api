@@ -910,67 +910,23 @@ app.post("/update-bio", async (req, res) => {
 // SIGNUP
 // ========================
 app.post("/signup", async (req, res) => {
-    try {
-        const {
-            username,
-            password,
-            role,
-            subjects,
-            course,
-            year_level,
-            profile_photo
-        } = req.body;
+    const { username, password, role } = req.body;
 
-        console.log("SIGNUP PHOTO:", profile_photo ? "YES" : "NO");
+    const [existing] = await db.query(
+        "SELECT * FROM users WHERE username=?",
+        [username]
+    );
 
-        const [existing] = await db.query(
-            "SELECT * FROM users WHERE username=?",
-            [username]
-        );
-
-        if (existing.length > 0) {
-            return res.json({ success: false, message: "Username exists" });
-        }
-
-let imageUrl = null;
-
-if (profile_photo) {
-    try {
-        let imageData = profile_photo;
-
-        if (!profile_photo.startsWith("data:")) {
-            imageData = "data:image/jpeg;base64," + profile_photo;
-        }
-
-        imageUrl = await uploadToCloudinary(imageData);
-
-    } catch (err) {
-        console.log("UPLOAD ERROR:", err.message);
-        imageUrl = null;
+    if (existing.length > 0) {
+        return res.json({ success: false, message: "Username exists" });
     }
-}
 
-        await db.query(
-            `INSERT INTO users 
-            (username, password, role, subjects, course, year_level, profile_photo, approvals)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
-            [
-                username,
-                password,
-                role || "student",
-                subjects || null,
-                course || null,
-                year_level || null,
-                imageUrl
-            ]
-        );
+    await db.query(
+        "INSERT INTO users (username,password,role,approvals) VALUES (?,?,?, 'pending')",
+        [username, password, role || "student"]
+    );
 
-        res.json({ success: true });
-
-    } catch (err) {
-        console.error("SIGNUP ERROR:", err);
-        res.json({ success: false, message: err.message });
-    }
+    res.json({ success: true });
 });
 // ========================
 // UPDATE USER (CLOUDINARY)
