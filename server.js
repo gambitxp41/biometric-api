@@ -753,9 +753,14 @@ app.put("/inventory/photo/:id", async (req, res) => {
 // ========================
 //report transactions
 // ========================
+// ========================
+// REPORT TRANSACTIONS (WITH FILTERS)
+// ========================
 app.get("/report-transactions", async (req, res) => {
     try {
-        const [rows] = await db.query(`
+        const { search, date, month, year } = req.query;
+
+        let sql = `
             SELECT 
                 t.*,
                 i.name AS item_name,
@@ -764,10 +769,56 @@ app.get("/report-transactions", async (req, res) => {
             FROM transactions t
             JOIN inventory i ON t.item_id = i.id
             JOIN users u ON t.user_id = u.id
-            ORDER BY t.borrow_time DESC
-        `);
+            WHERE 1=1
+        `;
+
+        let params = [];
+
+        // ========================
+        // SEARCH (username, item, id)
+        // ========================
+        if (search) {
+            sql += `
+                AND (
+                    u.username LIKE ?
+                    OR i.name LIKE ?
+                    OR t.id LIKE ?
+                )
+            `;
+            params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+        }
+
+        // ========================
+        // EXACT DATE
+        // ========================
+        if (date) {
+            sql += " AND DATE(t.borrow_time)=?";
+            params.push(date);
+        }
+
+        // ========================
+        // MONTH
+        // format: YYYY-MM (important)
+        // ========================
+        if (month) {
+            sql += " AND DATE_FORMAT(t.borrow_time, '%Y-%m')=?";
+            params.push(month);
+        }
+
+        // ========================
+        // YEAR
+        // ========================
+        if (year) {
+            sql += " AND YEAR(t.borrow_time)=?";
+            params.push(year);
+        }
+
+        sql += " ORDER BY t.borrow_time DESC";
+
+        const [rows] = await db.query(sql, params);
 
         res.json(rows);
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
