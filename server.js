@@ -146,19 +146,25 @@ app.post("/return-reservation", async (req, res) => {
 // ========================
 app.post("/reserve-item", async (req, res) => {
     try {
-        const { user_id, item_id, start_time, end_time } = req.body;
+        const { user_id, item_id, start_time, end_time, quantity } = req.body;
 
         // =========================
         // VALIDATION
         // =========================
-        if (!user_id || !item_id || !start_time || !end_time) {
+        if (!user_id || !item_id || !start_time || !end_time || !quantity) {
             return res.json({
                 success: false,
                 message: "Missing fields"
             });
         }
 
-        // FIX: proper comparison (string-safe ISO)
+        if (quantity <= 0) {
+            return res.json({
+                success: false,
+                message: "Invalid quantity"
+            });
+        }
+
         if (start_time >= end_time) {
             return res.json({
                 success: false,
@@ -167,7 +173,29 @@ app.post("/reserve-item", async (req, res) => {
         }
 
         // =========================
-        // FIX: PROPER CONFLICT CHECK
+        // CHECK INVENTORY STOCK
+        // =========================
+        const [item] = await db.query(
+            "SELECT quantity FROM inventory WHERE id = ?",
+            [item_id]
+        );
+
+        if (!item.length) {
+            return res.json({
+                success: false,
+                message: "Item not found"
+            });
+        }
+
+        if (item[0].quantity < quantity) {
+            return res.json({
+                success: false,
+                message: "Not enough stock available"
+            });
+        }
+
+        // =========================
+        // CONFLICT CHECK (time overlap)
         // =========================
         const [conflict] = await db.query(
             `SELECT * FROM reservations
@@ -189,13 +217,13 @@ app.post("/reserve-item", async (req, res) => {
         }
 
         // =========================
-        // INSERT
+        // INSERT RESERVATION
         // =========================
         await db.query(
             `INSERT INTO reservations
-            (user_id, item_id, start_time, end_time, status)
-            VALUES (?, ?, ?, ?, 'pending')`,
-            [user_id, item_id, start_time, end_time]
+            (user_id, item_id, quantity, start_time, end_time, status)
+            VALUES (?, ?, ?, ?, ?, 'pending')`,
+            [user_id, item_id, quantity, start_time, end_time]
         );
 
         return res.json({
@@ -211,9 +239,6 @@ app.post("/reserve-item", async (req, res) => {
         });
     }
 });
-// ==========================
-// GET ALL RESERVATIONS
-// ==========================
 // ==========================
 // GET ALL RESERVATIONS
 // ==========================
