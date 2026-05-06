@@ -910,25 +910,54 @@ app.post("/update-bio", async (req, res) => {
 // SIGNUP
 // ========================
 app.post("/signup", async (req, res) => {
-    const { username, password, role } = req.body;
+    try {
+        const {
+            username,
+            password,
+            role,
+            subjects,
+            course,
+            year_level,
+            profile_photo
+        } = req.body;
 
-    const [existing] = await db.query(
-        "SELECT * FROM users WHERE username=?",
-        [username]
-    );
+        const [existing] = await db.query(
+            "SELECT * FROM users WHERE username=?",
+            [username]
+        );
 
-    if (existing.length > 0) {
-        return res.json({ success: false, message: "Username exists" });
+        if (existing.length > 0) {
+            return res.json({ success: false, message: "Username exists" });
+        }
+
+        let imageUrl = null;
+
+        // 🔥 FIX: only upload if may image
+        if (profile_photo) {
+            imageUrl = await uploadToCloudinary(profile_photo);
+        }
+
+        await db.query(
+            `INSERT INTO users 
+            (username, password, role, biometric_id, profile_photo, subjects, course, year_level, approvals)
+            VALUES (?, ?, ?, NULL, ?, ?, ?, ?, 'pending')`,
+            [
+                username,
+                password,
+                role || "student",
+                imageUrl,
+                subjects || null,
+                course || null,
+                year_level || null
+            ]
+        );
+
+        res.json({ success: true });
+
+    } catch (err) {
+        res.json({ success: false, message: err.message });
     }
-
-    await db.query(
-        "INSERT INTO users (username,password,role,approvals) VALUES (?,?,?, 'pending')",
-        [username, password, role || "student"]
-    );
-
-    res.json({ success: true });
 });
-
 // ========================
 // UPDATE USER (CLOUDINARY)
 // ========================
