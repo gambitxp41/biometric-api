@@ -943,12 +943,12 @@ app.get("/fingerprints", async (req, res) => {
 // BIOMETRIC LOGIN
 // ========================
 app.post("/login-biometric", async (req, res) => {
-    const { fingerprint_id } = req.body;
+    const { id } = req.body;
 
     try {
         const [rows] = await db.query(
             "SELECT * FROM users WHERE id=?",
-            [fingerprint_id]
+            [id]
         );
 
         if (!rows.length) {
