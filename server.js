@@ -109,6 +109,7 @@ app.post("/return-reservation", async (req, res) => {
             });
         }
 
+        // 1. Get reservation details
         const [rows] = await db.query(
             "SELECT * FROM reservations WHERE id=?",
             [reservation_id]
@@ -121,6 +122,9 @@ app.post("/return-reservation", async (req, res) => {
             });
         }
 
+        const reservation = rows[0];
+
+        // 2. Update reservation status
         await db.query(
             `UPDATE reservations 
              SET status='returned', returned_date = NOW() 
@@ -128,9 +132,17 @@ app.post("/return-reservation", async (req, res) => {
             [reservation_id]
         );
 
+        // 3. RETURN STOCK TO INVENTORY (IMPORTANT FIX)
+        await db.query(
+            `UPDATE inventory 
+             SET quantity = quantity + ? 
+             WHERE id = ?`,
+            [reservation.quantity, reservation.item_id]
+        );
+
         res.json({
             success: true,
-            message: "Reservation returned successfully!"
+            message: "Reservation returned and stock restored!"
         });
 
     } catch (err) {
