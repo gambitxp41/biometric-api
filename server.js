@@ -359,16 +359,10 @@ app.post("/approve-transaction", async (req, res) => {
             return res.json({ success: false, message: "Not enough stock" });
         }
 
-        // deduct stock ONLY ON APPROVAL
-        await db.query(
-            "UPDATE inventory SET quantity = quantity - ? WHERE id = ?",
-            [t.quantity, t.item_id]
-        );
-
-        await db.query(
-            "UPDATE transactions SET status = 'inuse' WHERE id = ?",
-            [transaction_id]
-        );
+await db.query(
+    "UPDATE transactions SET status = 'approved' WHERE id = ?",
+    [transaction_id]
+);
 
         res.json({
             success: true,
