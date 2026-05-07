@@ -117,8 +117,8 @@ app.get("/stats/users", async (req, res) => {
 // ===============================
 app.get("/stats/inventory", async (req, res) => {
     try {
-        const result = await db.query("SELECT SUM(quantity) AS total FROM inventory");
-        res.json({ total: result[0].total || 0 });
+        const [rows] = await db.query("SELECT COUNT(*) AS total FROM inventory");
+        res.json({ total: rows[0].total });
     } catch (err) {
         console.error(err);
         res.json({ total: 0 });
