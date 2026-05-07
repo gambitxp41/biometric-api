@@ -274,6 +274,60 @@ app.post("/deny-reservation", async (req, res) => {
     }
 });
 // ========================
+// BORROW ITEM
+// ========================
+app.post("/borrow-item", async (req, res) => {
+    try {
+        let { user_id, item_id, quantity, } = req.body;
+
+        console.log("BODY:", req.body); // 🔥 DEBUG
+
+        quantity = parseInt(quantity);
+
+        if (!user_id || !item_id || !quantity ) {
+            return res.json({
+                success: false,
+                message: "Missing fields",
+                debug: { user_id, item_id, quantity, }
+            });
+        }
+
+        const [inv] = await db.query(
+            "SELECT quantity FROM inventory WHERE id = ?",
+            [item_id]
+        );
+
+        if (!inv.length) {
+            return res.json({ success: false, message: "Item not found" });
+        }
+
+        if (inv[0].quantity < quantity) {
+            return res.json({ success: false, message: "Not enough stock" });
+        }
+
+        await db.query(
+            "UPDATE inventory SET quantity = quantity - ? WHERE id = ?",
+            [quantity, item_id]
+        );
+
+        await db.query(
+            `INSERT INTO transactions (user_id, item_id, quantity, status)
+             VALUES (?, ?, ?,'inuse')`,
+            [user_id, item_id, quantity]
+        );
+
+        res.json({ success: true, message: "Item borrowed successfully!" });
+
+    } catch (err) {
+        console.error("BORROW ERROR:", err);
+        res.json({
+            success: false,
+            message: "Server error",
+            error: err.message
+        });
+    }
+});
+// ========================
 //RETURN ITEMS
 // ========================
 app.post("/return-item", async (req, res) => {
