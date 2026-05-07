@@ -274,24 +274,25 @@ app.post("/deny-reservation", async (req, res) => {
     }
 });
 // ========================
-// BORROW ITEM
+// BORROW ITEM (PENDING)
 // ========================
 app.post("/borrow-item", async (req, res) => {
     try {
-        let { user_id, item_id, quantity, } = req.body;
+        let { user_id, item_id, quantity } = req.body;
 
-        console.log("BODY:", req.body); // 🔥 DEBUG
+        console.log("BODY:", req.body);
 
         quantity = parseInt(quantity);
 
-        if (!user_id || !item_id || !quantity ) {
+        if (!user_id || !item_id || isNaN(quantity) || quantity <= 0) {
             return res.json({
                 success: false,
-                message: "Missing fields",
-                debug: { user_id, item_id, quantity, }
+                message: "Missing or invalid fields",
+                debug: { user_id, item_id, quantity }
             });
         }
 
+        // check item exists
         const [inv] = await db.query(
             "SELECT quantity FROM inventory WHERE id = ?",
             [item_id]
@@ -301,25 +302,106 @@ app.post("/borrow-item", async (req, res) => {
             return res.json({ success: false, message: "Item not found" });
         }
 
-        if (inv[0].quantity < quantity) {
-            return res.json({ success: false, message: "Not enough stock" });
-        }
-
-        await db.query(
-            "UPDATE inventory SET quantity = quantity - ? WHERE id = ?",
-            [quantity, item_id]
-        );
+        // IMPORTANT: DO NOT deduct stock yet
 
         await db.query(
             `INSERT INTO transactions (user_id, item_id, quantity, status)
-             VALUES (?, ?, ?,'inuse')`,
+             VALUES (?, ?, ?, 'pending')`,
             [user_id, item_id, quantity]
         );
 
-        res.json({ success: true, message: "Item borrowed successfully!" });
+        res.json({
+            success: true,
+            message: "Borrow request sent for approval"
+        });
 
     } catch (err) {
         console.error("BORROW ERROR:", err);
+        res.json({
+            success: false,
+            message: "Server error",
+            error: err.message
+        });
+    }
+});
+// ========================
+//APPROVED TRANSACTIONS
+// ========================
+// ========================
+// APPROVE TRANSACTION
+// ========================
+app.post("/approve-transaction", async (req, res) => {
+    try {
+        const { transaction_id } = req.body;
+
+        const [trx] = await db.query(
+            "SELECT * FROM transactions WHERE id = ?",
+            [transaction_id]
+        );
+
+        if (!trx.length) {
+            return res.json({ success: false, message: "Transaction not found" });
+        }
+
+        const t = trx[0];
+
+        if (t.status !== "pending") {
+            return res.json({ success: false, message: "Already processed" });
+        }
+
+        // check stock again
+        const [inv] = await db.query(
+            "SELECT quantity FROM inventory WHERE id = ?",
+            [t.item_id]
+        );
+
+        if (!inv.length || inv[0].quantity < t.quantity) {
+            return res.json({ success: false, message: "Not enough stock" });
+        }
+
+        // deduct stock ONLY ON APPROVAL
+        await db.query(
+            "UPDATE inventory SET quantity = quantity - ? WHERE id = ?",
+            [t.quantity, t.item_id]
+        );
+
+        await db.query(
+            "UPDATE transactions SET status = 'inuse' WHERE id = ?",
+            [transaction_id]
+        );
+
+        res.json({
+            success: true,
+            message: "Transaction approved"
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.json({
+            success: false,
+            message: "Server error",
+            error: err.message
+        });
+    }
+});
+// ========================
+//DENIED TRANSACTIONS
+// ========================
+app.post("/deny-transaction", async (req, res) => {
+    try {
+        const { transaction_id } = req.body;
+
+        await db.query(
+            "UPDATE transactions SET status = 'denied' WHERE id = ?",
+            [transaction_id]
+        );
+
+        res.json({
+            success: true,
+            message: "Transaction denied"
+        });
+
+    } catch (err) {
         res.json({
             success: false,
             message: "Server error",
