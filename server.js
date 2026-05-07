@@ -793,7 +793,7 @@ app.post("/inventory/add", async (req, res) => {
         await db.query(`
             INSERT INTO inventory
             (name, classification, quantity, procedure, subject, semester, year, theory_rle)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             name,
             classification,
