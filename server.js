@@ -404,6 +404,59 @@ app.post("/deny-transaction", async (req, res) => {
     }
 });
 // ========================
+//RElease Items
+// ========================
+app.post("/release-item", async (req, res) => {
+    try {
+
+        const { transaction_id } = req.body;
+
+        const [trx] = await db.query(
+            "SELECT * FROM transactions WHERE id=?",
+            [transaction_id]
+        );
+
+        if (!trx.length) {
+            return res.json({
+                success:false,
+                message:"Transaction not found"
+            });
+        }
+
+        const t = trx[0];
+
+        if (t.status !== "approved") {
+            return res.json({
+                success:false,
+                message:"Transaction not approved"
+            });
+        }
+
+        await db.query(
+            "UPDATE inventory SET quantity = quantity - ? WHERE id=?",
+            [t.quantity, t.item_id]
+        );
+
+        await db.query(
+            "UPDATE transactions SET status='inuse' WHERE id=?",
+            [transaction_id]
+        );
+
+        res.json({
+            success:true,
+            message:"Item released"
+        });
+
+    } catch(err) {
+
+        res.json({
+            success:false,
+            message:err.message
+        });
+
+    }
+});
+// ========================
 //RETURN ITEMS
 // ========================
 app.post("/return-item", async (req, res) => {
