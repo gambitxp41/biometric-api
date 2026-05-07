@@ -788,12 +788,11 @@ app.post("/inventory/add", async (req, res) => {
             semester,
             year,
             theory_rle,
-            photo // base64 string
         } = req.body;
 
         await db.query(`
             INSERT INTO inventory
-            (name, classification, quantity, \`procedure\`, subject, semester, year, photo, \`theory_rle\`)
+            (name, classification, quantity, procedure, subject, semester, year, theory_rle)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             name,
@@ -803,7 +802,6 @@ app.post("/inventory/add", async (req, res) => {
             subject,
             semester,
             year,
-            photo || null,
             theory_rle
         ]);
 
