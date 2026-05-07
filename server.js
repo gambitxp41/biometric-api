@@ -14,7 +14,31 @@ cloudinary.config({
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
+// ===============================
+// TOTAL USERS
+// ===============================
+app.get("/stats/users", async (req, res) => {
+    try {
+        const result = await db.query("SELECT COUNT(*) AS total FROM users");
+        res.json({ total: result[0].total });
+    } catch (err) {
+        console.error(err);
+        res.json({ total: 0 });
+    }
+});
 
+// ===============================
+// TOTAL INVENTORY ITEMS
+// ===============================
+app.get("/stats/inventory", async (req, res) => {
+    try {
+        const result = await db.query("SELECT SUM(quantity) AS total FROM inventory");
+        res.json({ total: result[0].total || 0 });
+    } catch (err) {
+        console.error(err);
+        res.json({ total: 0 });
+    }
+});
 // ========================
 //app post
 // ========================
