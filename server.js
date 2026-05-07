@@ -44,17 +44,17 @@ app.get("/open-pandora", (req, res) => {
 // ========================
 app.post("/borrow-item", async (req, res) => {
     try {
-        let { user_id, item_id, quantity, procedure } = req.body;
+        let { user_id, item_id, quantity, } = req.body;
 
         console.log("BODY:", req.body); // 🔥 DEBUG
 
         quantity = parseInt(quantity);
 
-        if (!user_id || !item_id || !quantity || !procedure) {
+        if (!user_id || !item_id || !quantity ||) {
             return res.json({
                 success: false,
                 message: "Missing fields",
-                debug: { user_id, item_id, quantity, procedure }
+                debug: { user_id, item_id, quantity, }
             });
         }
 
@@ -77,9 +77,9 @@ app.post("/borrow-item", async (req, res) => {
         );
 
         await db.query(
-            `INSERT INTO transactions (user_id, item_id, \`procedure\`, quantity, status)
-             VALUES (?, ?, ?, ?, 'inuse')`,
-            [user_id, item_id, procedure, quantity]
+            `INSERT INTO transactions (user_id, item_id,\`, quantity, status)
+             VALUES (?, ?, ?,'inuse')`,
+            [user_id, item_id, quantity]
         );
 
         res.json({ success: true, message: "Item borrowed successfully!" });
@@ -852,12 +852,7 @@ app.get("/report-transactions", async (req, res) => {
 // ========================
 // REPORT RESERVATIONS (WITH FILTERS)
 // ========================
-// ========================
-// reports reservations
-// ========================
-// ========================
-// REPORT - RESERVATIONS
-// ========================
+
 app.get("/report-reservations", async (req, res) => {
     try {
         let { search, month, year, date } = req.query;
