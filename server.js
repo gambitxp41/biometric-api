@@ -697,41 +697,33 @@ app.get("/transactions", async (req, res) => {
         const { user_id, date, month, year } = req.query;
 
         let sql = `
-            SELECT t.*, i.name AS item_name
+            SELECT 
+                t.*, 
+                i.name AS item_name,
+                u.username AS user_name
             FROM transactions t
             JOIN inventory i ON t.item_id = i.id
+            JOIN users u ON t.user_id = u.id
             WHERE t.status != 'returned'
         `;
 
         let params = [];
 
-        // ========================
-        // USER FILTER
-        // ========================
         if (user_id) {
             sql += " AND t.user_id=?";
             params.push(user_id);
         }
 
-        // ========================
-        // EXACT DATE FILTER
-        // ========================
         if (date) {
             sql += " AND DATE(t.borrow_time)=?";
             params.push(date);
         }
 
-        // ========================
-        // MONTH + YEAR FILTER
-        // ========================
         if (month && year) {
             sql += " AND MONTH(t.borrow_time)=? AND YEAR(t.borrow_time)=?";
             params.push(month, year);
         }
 
-        // ========================
-        // YEAR ONLY FILTER
-        // ========================
         if (year && !month) {
             sql += " AND YEAR(t.borrow_time)=?";
             params.push(year);
@@ -748,7 +740,6 @@ app.get("/transactions", async (req, res) => {
         res.json([]);
     }
 });
-
 // =========================
 // GET INVENTORY (SEARCH + FILTER)
 // =========================
